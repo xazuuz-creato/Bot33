@@ -1,3 +1,4 @@
-ccxt
-pandas
-numpy
+fastapi
+uvicorn
+aiohttp
+pydantic
