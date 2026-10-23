@@ -1,5 +1,3 @@
-fastapi
-uvicorn
 aiohttp
 pydantic
 pandas
