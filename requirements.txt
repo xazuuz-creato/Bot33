@@ -1,3 +1,5 @@
-aiohttp
-pydantic
-pandas
+fastapi==0.110.0
+uvicorn[standard]==0.28.0
+gunicorn==21.2.0
+ccxt==4.2.75
+aiohttp==3.9.3
