@@ -4,4 +4,6 @@ gunicorn
 ccxt
 websockets
 aiohttp
+httpx
+jinja2
 pydantic
