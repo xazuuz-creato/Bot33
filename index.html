@@ -40,9 +40,9 @@
             <div>
                 <h1 class="text-base font-bold text-slate-100 flex items-center gap-2">
                     منصة الحارس السريع 
-                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">Scalper v12.0</span>
+                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">Scalper v12.5</span>
                 </h1>
-                <p class="text-xs text-slate-400">محرك تداول سريـع | ربح أدنى 0.45% وأجل أقصاه 10 دقائق</p>
+                <p class="text-xs text-slate-400">محرك تداول سريـع | تجميع السيولة الخاطفة والربح السريع</p>
             </div>
         </div>
         
@@ -68,7 +68,7 @@
                 <i class="fa-solid fa-layer-group text-emerald-400 text-sm"></i>
             </div>
             <div class="grid grid-cols-2 gap-2">
-                <button id="scopeTopBtn" onclick="setScope('top12')" class="px-2.5 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition text-center">
+                <button id="scopeTopBtn" onclick="setScope('top12')" class="px-2.5 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold transition text-center">
                     🔥 أفضل 12 (6 أسهم + 6 عملات)
                 </button>
                 <button id="scopeAllBtn" onclick="setScope('all')" class="px-2.5 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition text-center">
@@ -97,13 +97,13 @@
         <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-slate-400">الحد الأقصى لزمن الصفقة</span>
-                <span id="timeoutDisplay" class="text-xs font-mono font-bold text-amber-400">600 ثانية (10 دقائق)</span>
+                <span id="timeoutDisplay" class="text-xs font-mono font-bold text-amber-400">180 ثانية (3 دقائق)</span>
             </div>
             <div class="space-y-1">
-                <input type="range" id="timeoutRange" min="60" max="600" step="30" value="600" oninput="updateTimeoutValue(this.value)" class="w-full accent-amber-400 cursor-pointer">
+                <input type="range" id="timeoutRange" min="60" max="600" step="30" value="180" oninput="updateTimeoutValue(this.value)" class="w-full accent-amber-400 cursor-pointer">
                 <div class="flex justify-between text-[10px] text-slate-500 font-mono">
                     <span>1 دقيقة</span>
-                    <span>5 دقائق</span>
+                    <span>3 دقائق</span>
                     <span>10 دقائق</span>
                 </div>
             </div>
@@ -200,7 +200,7 @@
                     <i class="fa-solid fa-microchip"></i> خوارزمية الدخول المطبقة:
                 </span>
                 <p class="text-[11px] text-slate-300 leading-relaxed" id="aiAlgoDesc">
-                    رصد تدفق سيولة الشراء السريعة <code class="bg-slate-800 px-1 py-0.5 rounded text-emerald-400">Imbalance Ratio >= 1.5x</code> مع هدف ربح أدنى <strong class="text-emerald-400">0.45%</strong> والحد الأقصى للصفقة <strong class="text-emerald-400">10 دقائق</strong>.
+                    رصد تدفق سيولة الشراء السريعة الفائقة <code class="bg-slate-800 px-1 py-0.5 rounded text-emerald-400">Imbalance Ratio >= 3.0x</code> مع هدف ربح خاطف سريع <strong class="text-emerald-400">+0.25% إلى +0.40%</strong>.
                 </p>
             </div>
 
@@ -209,7 +209,7 @@
                     <i class="fa-solid fa-bullseye"></i> سبب الدخول وتحليل الأصول:
                 </span>
                 <p class="text-[11px] text-slate-300 leading-relaxed" id="aiTriggerDesc">
-                    توليد أوامر شراء فورية عند توفر السيولة لتجنب الدخول المتأخر وتجاوز التجميع المتوسط.
+                    توليد أوامر شراء فورية فقط عند توفر سيولة ضخمة جداً لتجنب الحركة البطيئة الخاطئة.
                 </p>
             </div>
 
@@ -233,7 +233,7 @@
             <button onclick="clearConsole()" class="text-[10px] text-slate-500 hover:text-slate-300">مسح السجل</button>
         </div>
         <div id="consoleLog" class="bg-darkBg border border-slate-900 rounded-xl p-3 h-32 overflow-y-auto font-mono text-[11px] space-y-1 text-slate-400">
-            <div>[إشعار] تم إطلاق نظام التداول الخاطف المصحح بنجاح...</div>
+            <div>[إشعار] تم إطلاق محرك السكالبينغ المحدث بشرط السيولة الفائقة (3.0x)...</div>
         </div>
     </div>
 
@@ -254,14 +254,13 @@
         let isDemoMode = true;
         let tradeBudget = 100.0;
         let maxConcurrentTrades = 3;
-        let maxTradeDurationSec = 600; 
+        let maxTradeDurationSec = 180; 
         let activeTrades = [];
         let completedTrades = [];
         let orderbookData = {};
         let wsSockets = {};
 
         const BINANCE_FEE_PCT = 0.15;
-        const MIN_TAKE_PROFIT_PCT = 0.45;
 
         window.onload = function() {
             setMode(true);
@@ -288,7 +287,6 @@
                 logMessage("🌐 تم تحديد نطاق: كافة العملات والأسهم (30 رمزا)", "info");
             }
 
-            // إعادة تشغيل الـ WebSocket لتغطية الأصول المحددة
             closeAllWebSockets();
             initWebSockets();
         }
@@ -376,16 +374,17 @@
             const ob = orderbookData[symbol];
             if (!ob || !ob.bestAsk) return;
 
-            // شرط دخول سلس ومباشر لتأمين تنفيذ الصفقات بسرعة
-            if (ob.imbalanceRatio >= 1.5) {
+            // رفع معيار الدخول إلى 3.0x على الأقل لمنع الصفقات الميتة
+            if (ob.imbalanceRatio >= 3.0) {
                 executeBuyTrade(symbol, ob.bestAsk, ob.imbalanceRatio);
             }
         }
 
         async function executeBuyTrade(symbol, price, imbalanceRatio) {
             const entryPrice = price;
-            const calculatedTpPct = Math.max(MIN_TAKE_PROFIT_PCT, (imbalanceRatio * 0.20));
-            const slPrice = entryPrice * 0.9940; 
+            // هدف السكالبينغ السريع بين +0.25% إلى +0.40%
+            const calculatedTpPct = Math.min(0.40, Math.max(0.25, imbalanceRatio * 0.08));
+            const slPrice = entryPrice * 0.9960; 
             const tpPrice = entryPrice * (1 + (calculatedTpPct / 100));
 
             const trade = {
@@ -431,9 +430,9 @@
                 const pnlPct = ((trade.currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
                 const elapsedSec = Math.round((now - trade.entryTime) / 1000);
 
-                if (pnlPct >= 0.25 && !trade.isBreakEvenTriggered) {
+                if (pnlPct >= 0.18 && !trade.isBreakEvenTriggered) {
                     trade.isBreakEvenTriggered = true;
-                    trade.slPrice = trade.entryPrice * 1.0010;
+                    trade.slPrice = trade.entryPrice * 1.0005;
                     logMessage(`🛡️ [تأمين] رفع وقف ${trade.symbol} لحماية العمولات بربح صافي!`, "info");
                 }
 
