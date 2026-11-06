@@ -42,9 +42,9 @@
             <div>
                 <h1 class="text-base font-bold text-slate-100 flex items-center gap-2">
                     منصة الحارس السريع 
-                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">WebSocket Pro v10.5</span>
+                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">Adaptive AI Scalper v11.0</span>
                 </h1>
-                <p class="text-xs text-slate-400">محرك سكالبينغ بالميكروثانية بفلترة العمولات والوقف التفاعلي</p>
+                <p class="text-xs text-slate-400">تحليل الميكروثانية والسيولة قبل الدخول | هدف ربح تكيفي وشريط زمن أقصى 10 دقائق</p>
             </div>
         </div>
         
@@ -98,15 +98,15 @@
         <!-- ⏱️ التحكم التفاعلي بالوقف الزمني للصفقات -->
         <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-400">الحد الأقصى لزمن الصفقة</span>
-                <span id="timeoutDisplay" class="text-xs font-mono font-bold text-amber-400">180 ثانية (3 دقائق)</span>
+                <span class="text-xs font-bold text-slate-400">الحد الأقصى التكيفي لزمن الصفقة</span>
+                <span id="timeoutDisplay" class="text-xs font-mono font-bold text-amber-400">600 ثانية (10 دقائق)</span>
             </div>
             <div class="space-y-1">
-                <input type="range" id="timeoutRange" min="30" max="600" step="15" value="180" oninput="updateTimeoutValue(this.value)" class="w-full accent-amber-400 cursor-pointer">
+                <input type="range" id="timeoutRange" min="60" max="600" step="30" value="600" oninput="updateTimeoutValue(this.value)" class="w-full accent-amber-400 cursor-pointer">
                 <div class="flex justify-between text-[10px] text-slate-500 font-mono">
-                    <span>30ث</span>
-                    <span>3 دقائق</span>
-                    <span>10 دقائق</span>
+                    <span>1 دقيقة</span>
+                    <span>5 دقائق</span>
+                    <span>10 دقائق (القصوى)</span>
                 </div>
             </div>
         </div>
@@ -203,7 +203,7 @@
                     <i class="fa-solid fa-microchip"></i> خوارزمية الدخول المطبقة:
                 </span>
                 <p class="text-[11px] text-slate-300 leading-relaxed" id="aiAlgoDesc">
-                    دخول فوري بالميكروثانية عبر <strong class="text-emerald-400">WebSocket Streams</strong> عند تسجيل <code class="bg-slate-800 px-1 py-0.5 rounded text-emerald-400">Imbalance Ratio >= 2.5x</code> في كتاب الطلبات بدون أي انتظار.
+                    تحليل وتنبؤ مسبق لسيولة كتاب الطلبات عبر <strong class="text-emerald-400">WebSocket Streams</strong> عند رصد <code class="bg-slate-800 px-1 py-0.5 rounded text-emerald-400">Imbalance Ratio >= 2.5x</code> مع هدف ربح تكيفي لا يقل عن <strong class="text-emerald-400">0.45%</strong> وعمر ديناميكي أقصاه 10 دقائق.
                 </p>
             </div>
 
@@ -251,13 +251,14 @@
         let isDemoMode = true;
         let tradeBudget = 100.0;
         let maxConcurrentTrades = 2;
-        let maxTradeDurationSec = 180;
+        let maxTradeDurationSec = 600; // 10 دقائق افتراضياً
         let activeTrades = [];
         let completedTrades = [];
         let orderbookData = {};
         let wsSockets = {};
 
         const BINANCE_FEE_PCT = 0.15;
+        const MIN_TAKE_PROFIT_PCT = 0.45; // حد أدنى للربح الصافي الجيد
 
         window.onload = function() {
             setMode(true);
@@ -266,27 +267,6 @@
             setInterval(trackActiveTrades, 500);
             runAIAnalysis();
         };
-
-        function setScope(scope) {
-            currentScope = scope;
-            activePairs = scope === 'top' ? [...topAssets] : [...allAssets];
-            document.getElementById('scopeTopBtn').className = scope === 'top' ? 'px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition' : 'px-3 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition';
-            document.getElementById('scopeAllBtn').className = scope === 'all' ? 'px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition' : 'px-3 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition';
-            initWebSockets();
-        }
-
-        function setMode(demo) {
-            isDemoMode = demo;
-            document.getElementById('modeBadge').innerText = demo ? 'تجريبي (Demo)' : 'حقيقي (Spot)';
-            document.getElementById('modeBadge').className = demo ? 'text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold' : 'text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-md font-bold';
-            document.getElementById('demoBtn').className = demo ? 'flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md' : 'flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs';
-            document.getElementById('liveBtn').className = !demo ? 'flex-1 py-1.5 bg-rose-500 text-slate-950 font-bold rounded-xl text-xs shadow-md' : 'flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs';
-            fetchBalance();
-        }
-
-        function updateBudget(val) {
-            tradeBudget = parseFloat(val) || 100;
-        }
 
         function updateTimeoutValue(val) {
             maxTradeDurationSec = parseInt(val);
@@ -346,15 +326,21 @@
             const ob = orderbookData[symbol];
             if (!ob) return;
 
+            // شرط الدخول: الـ Imbalance متفوق بـ 2.5 أضعاف والـ Spread ضعيف جداً لحماية الربح
             if (ob.imbalanceRatio >= 2.5 && ob.spreadPct <= 0.05) {
-                executeBuyTrade(symbol, ob.bestAsk);
+                executeBuyTrade(symbol, ob.bestAsk, ob.imbalanceRatio);
             }
         }
 
-        async function executeBuyTrade(symbol, price) {
+        async function executeBuyTrade(symbol, price, imbalanceRatio) {
             const entryPrice = price;
-            const slPrice = entryPrice * 0.9945;
-            const tpPrice = entryPrice * 1.0045;
+            // حساب الهدف التكيفي: لا يقل عن 0.45%، ويزيد إذا كانت السيولة فائقة
+            const calculatedTpPct = Math.max(MIN_TAKE_PROFIT_PCT, (imbalanceRatio * 0.18));
+            const slPrice = entryPrice * 0.9945; // الوقف اللحظي
+            const tpPrice = entryPrice * (1 + (calculatedTpPct / 100));
+
+            // تحديد الوقف الزمني الذكي للصفقة (بين 3 دقائق إلى 10 دقائق حسب شدة السيولة)
+            const tradeAdaptiveDuration = Math.min(maxTradeDurationSec, Math.max(180, Math.round(180 * (imbalanceRatio / 2))));
 
             const trade = {
                 id: `TRD-${Date.now()}`,
@@ -364,12 +350,14 @@
                 budget: tradeBudget,
                 slPrice: slPrice,
                 tpPrice: tpPrice,
+                targetTpPct: calculatedTpPct,
+                maxDuration: tradeAdaptiveDuration,
                 entryTime: Date.now(),
                 isBreakEvenTriggered: false
             };
 
             activeTrades.push(trade);
-            logMessage(`🚀 [دخول خاطف ⚡] تم فتح صفقة ${symbol} بسعر $${entryPrice}`, "success");
+            logMessage(`🚀 [دخول تكيفي ⚡] تم فتح ${symbol} | السعر: $${entryPrice} | هدف الربح: +${calculatedTpPct.toFixed(2)}% | الوقف الزمني: ${tradeAdaptiveDuration}ث`, "success");
             renderActiveTrades();
 
             try {
@@ -397,6 +385,7 @@
                 const pnlPct = ((trade.currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
                 const elapsedSec = Math.round((now - trade.entryTime) / 1000);
 
+                // نقل الوقف للتعادل الصافي فقط بعد تحقيق أرباح حقيقية تغطي العمولات
                 if (pnlPct >= 0.28 && !trade.isBreakEvenTriggered) {
                     trade.isBreakEvenTriggered = true;
                     trade.slPrice = trade.entryPrice * 1.0015;
@@ -404,11 +393,11 @@
                 }
 
                 if (trade.currentPrice >= trade.tpPrice) {
-                    closeTrade(index, pnlPct, "🎯 جني الأرباح (TP)", trade.currentPrice);
+                    closeTrade(index, pnlPct, `🎯 جني أرباح (+${trade.targetTpPct.toFixed(2)}%)`, trade.currentPrice);
                 } else if (trade.currentPrice <= trade.slPrice) {
                     closeTrade(index, pnlPct, trade.isBreakEvenTriggered ? "🛡️ خروج تعادل آمن" : "🛑 وقف خسارة (SL)", trade.currentPrice);
-                } else if (elapsedSec >= maxTradeDurationSec) {
-                    closeTrade(index, pnlPct, `⏱️ خروج زمني (${maxTradeDurationSec}ث)`, trade.currentPrice);
+                } else if (elapsedSec >= trade.maxDuration) {
+                    closeTrade(index, pnlPct, `⏱️ خروج زمني تكيفي (${trade.maxDuration}ث)`, trade.currentPrice);
                 }
             });
 
@@ -420,7 +409,7 @@
             document.getElementById('activeCountBadge').innerText = `${activeTrades.length} صفقات`;
 
             if (activeTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يراقب السيولة الخاطفة.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يحلل السيولة التكيفية.</td></tr>`;
                 return;
             }
 
@@ -435,8 +424,8 @@
                         <td class="py-2.5 px-3 font-mono text-slate-400">$${t.entryPrice}</td>
                         <td class="py-2.5 px-3 font-mono text-slate-200">$${t.currentPrice}</td>
                         <td class="py-2.5 px-3 font-mono text-emerald-400">$${t.budget}</td>
-                        <td class="py-2.5 px-3 font-mono font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}">${isPositive ? '+' : ''}${pnlPct.toFixed(2)}%</td>
-                        <td class="py-2.5 px-3 font-mono text-amber-400 font-bold">${elapsedSec}ث / ${maxTradeDurationSec}ث</td>
+                        <td class="py-2.5 px-3 font-mono font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}">${isPositive ? '+' : ''}${pnlPct.toFixed(2)}% (الهدف: +${t.targetTpPct.toFixed(2)}%)</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-400 font-bold">${elapsedSec}ث / ${t.maxDuration}ث</td>
                         <td class="py-2.5 px-3 font-mono text-[11px]">${t.isBreakEvenTriggered ? '<span class="text-emerald-400">مُأمنة (BE)</span>' : '<span class="text-slate-400">وقف عادي</span>'}</td>
                     </tr>
                 `;
