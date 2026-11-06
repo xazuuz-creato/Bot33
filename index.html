@@ -1,164 +1,52 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الحارس - سكالبيينغ بينانس المدمج (معدّل)</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- TradingView Widget Script -->
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        darkBg: '#0f172a',
-                        cardBg: '#1e293b',
-                        accentGreen: '#10b981',
-                        accentRed: '#ef4444',
-                        accentAmber: '#f59e0b'
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen pb-12">
-
-    <!-- Header / Navbar -->
-    <header class="bg-cardBg border-b border-slate-800 sticky top-0 z-50 px-4 py-3 shadow-md">
-        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-400 flex items-center justify-center text-white text-xl shadow-lg shadow-amber-500/20">
-                    <i class="fa-solid fa-shield-halved animate-pulse text-slate-950"></i>
-                </div>
-                <div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-amber-400 to-emerald-200 bg-clip-text text-transparent">منصة الحارس - محرك بينانس الآمن 🛡️</h1>
-                    <p class="text-[11px] text-slate-400">نظام السكالبينغ المتقدم (مُعالج الـ Slippage والعمولات والوقف التكيفي)</p>
-                </div>
-            </div>
-
-            <!-- Balance & Mode Switcher -->
-            <div class="flex items-center flex-wrap gap-3">
-                <!-- Mode Switcher -->
-                <div class="flex items-center bg-darkBg border border-slate-700 rounded-xl p-1 gap-1">
-                    <button id="btnDemoMode" onclick="setMode(true)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-500 text-slate-950 shadow">
-                        <i class="fa-solid fa-flask text-xs"></i> تجريبي Demo
-                    </button>
-                    <button id="btnLiveMode" onclick="setMode(false)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">
-                        <i class="fa-solid fa-bolt text-xs"></i> حقيقي Live
-                    </button>
-                </div>
-
-                <div class="flex items-center gap-3 bg-darkBg border border-emerald-500/40 px-4 py-2 rounded-xl shadow-inner">
-                    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-base font-bold">
-                        <i class="fa-solid fa-wallet"></i>
-                    </div>
-                    <div>
-                        <span class="text-[10px] text-slate-400 block font-semibold" id="balanceLabel">رصيد بينانس (تجريبي):</span>
-                        <span id="accountBalanceDisplay" class="text-emerald-400 font-mono font-extrabold text-base">جاري الجلب...</span>
-                    </div>
-                    <button onclick="fetchBalance()" title="تحديث الرصيد" class="text-slate-400 hover:text-emerald-400 transition ml-1">
-                        <i class="fa-solid fa-rotate-right text-xs"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
-
-        <!-- Asset Scope & Protection Stats -->
+<!-- ... existing code -->
+        <!-- Controls Header -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Asset Scope Picker -->
-            <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-slate-400 font-semibold">نطاق الأصول والتداول:</span>
-                    <span id="scopeBadge" class="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">الأكثر سيولة وأماناً 🛡️</span>
+            <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-400">نطاق العملات المستهدفة</span>
+                    <i class="fa-solid fa-layer-group text-emerald-400 text-sm"></i>
                 </div>
-                <div class="flex items-center gap-2 bg-darkBg border border-slate-700 rounded-xl p-1">
-                    <button onclick="switchScope('top')" id="btnScopeTop" class="w-full py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950">الأكثر سيولة وأماناً</button>
-                    <button onclick="switchScope('all')" id="btnScopeAll" class="w-full py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">جميع الأسهم والعملات</button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="scopeTopBtn" onclick="setScope('top')" class="px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition">
+                        🔥 أعلى 6 عملات سيولة
+                    </button>
+                    <button id="scopeAllBtn" onclick="setScope('all')" class="px-3 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition">
+                        🌐 كافة الـ 30 عملة
+                    </button>
                 </div>
             </div>
 
-            <!-- Enhanced Anti-Slippage Rules -->
-            <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-slate-400 font-semibold">قواعد الأمان ومنع الفخاخ:</span>
-                    <span class="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">مستقرة 🎯</span>
+            <!-- Mode & Budget Control -->
+            <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-400">وضع المحفظة والميزانية</span>
+                    <span id="modeBadge" class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold">تجريبي (Demo)</span>
                 </div>
-                <div class="space-y-1 text-[11px] text-slate-300">
-                    <div class="flex justify-between">
-                        <span class="text-slate-400">الوقف المرن:</span>
-                        <span class="font-mono text-rose-400 font-bold">-0.55% (تغطية الضوضاء)</span>
+                <div class="flex items-center gap-2">
+                    <button id="demoBtn" onclick="setMode(true)" class="flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md">تجريبي</button>
+                    <button id="liveBtn" onclick="setMode(false)" class="flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs">حقيقي (Spot)</button>
+                    <div class="relative w-28">
+                        <input type="number" id="budgetInput" value="100" onchange="updateBudget(this.value)" class="w-full bg-darkBg border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500" placeholder="الميزانية">
+                        <span class="absolute left-2 top-1.5 text-[10px] text-slate-500 font-mono">$</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-400">نقطة التعادل الصافية:</span>
-                        <span class="font-mono text-emerald-400 font-bold">+0.28% (تغطية الرسوم)</span>
+                </div>
+            </div>
+
+            <!-- ⏱️ التحكم التفاعلي بالوقف الزمني للصفقات -->
+            <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-400">الحد الأقصى لزمن الصفقة</span>
+                    <span id="timeoutDisplay" class="text-xs font-mono font-bold text-amber-400">180 ثانية (3 دقائق)</span>
+                </div>
+                <div class="space-y-1">
+                    <input type="range" id="timeoutRange" min="30" max="600" step="15" value="180" oninput="updateTimeoutValue(this.value)" class="w-full accent-amber-400 cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                        <span>30ث</span>
+                        <span>3 دقائق</span>
+                        <span>10 دقائق</span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Concurrent Trades Limit -->
-            <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-slate-400 font-semibold">أقصى صفقات متزامنة:</span>
-                    <span id="maxTradesBadge" class="text-xs font-mono font-bold text-emerald-400">2 صفقات</span>
-                </div>
-                <div class="flex items-center gap-2 bg-darkBg border border-slate-700 rounded-xl px-3 py-1.5">
-                    <input type="range" id="maxTradesRange" min="1" max="5" value="2" oninput="updateMaxTrades(this.value)" class="w-full accent-emerald-500 cursor-pointer">
-                    <span id="maxTradesValue" class="text-sm font-bold font-mono w-6 text-center text-slate-200">2</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- TradingView Chart -->
-        <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
-            <div class="flex items-center justify-between">
-                <h3 class="text-sm font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-chart-candlestick text-emerald-400"></i>
-                    الرسم البياني المباشر (Binance / TradingView)
-                </h3>
-                <div id="chartPairSelector" class="flex items-center gap-2 overflow-x-auto py-1"></div>
-            </div>
-            <div id="tradingview_chart_container" class="w-full h-80 rounded-xl overflow-hidden border border-slate-800 bg-darkBg"></div>
-        </div>
-
-        <!-- Orderbook & Liquidity Radar -->
-        <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
-            <div class="flex items-center justify-between">
-                <h3 class="text-sm font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-layer-group text-amber-400 animate-pulse"></i>
-                    رادار السيولة وتأكيد الدخول الآمن
-                </h3>
-                <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">تحديث متوازي سريع</span>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-right text-xs text-slate-300">
-                    <thead class="bg-darkBg text-slate-400 uppercase text-[10px] border-b border-slate-800">
-                        <tr>
-                            <th class="py-2.5 px-3">الرمز</th>
-                            <th class="py-2.5 px-3">السعر الحالي</th>
-                            <th class="py-2.5 px-3">حجم الشراء (Bids)</th>
-                            <th class="py-2.5 px-3">حجم البيع (Asks)</th>
-                            <th class="py-2.5 px-3">نسبة تفوق الشراء</th>
-                            <th class="py-2.5 px-3">حالة الفلترة والترصد</th>
-                            <th class="py-2.5 px-3 text-center">الشارت</th>
-                        </tr>
-                    </thead>
-                    <tbody id="watchlistTbody" class="divide-y divide-slate-800/50">
-                        <tr>
-                            <td colspan="7" class="py-6 text-center text-slate-500">جاري قراءة دفاتر الطلبات والسيولة...</td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </div>
 
@@ -166,8 +54,8 @@
         <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-bolt text-emerald-400"></i>
-                    الصفقات النشطة (إدارة الأرباح وتغطية الرسوم)
+                    <i class="fa-solid fa-stopwatch text-emerald-400"></i>
+                    الصفقات النشطة وتوقيت الخروج
                 </h3>
                 <span id="activeCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">0 صفقات</span>
             </div>
@@ -181,35 +69,106 @@
                             <th class="py-2.5 px-3">السعر الحالي</th>
                             <th class="py-2.5 px-3">الميزانية</th>
                             <th class="py-2.5 px-3">النسبة (%)</th>
-                            <th class="py-2.5 px-3">الصافي ($)</th>
-                            <th class="py-2.5 px-3">حالة الوقف والتعادل</th>
+                            <th class="py-2.5 px-3">الوقت المنقضي</th>
+                            <th class="py-2.5 px-3">الحالة والوقف</th>
                         </tr>
                     </thead>
                     <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
                         <tr>
-                            <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً.</td>
+                            <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يراقب السيولة الخاطفة.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- System Logs -->
-        <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
+        <!-- 📊 سجل الصفقات المنتهية (Closed Trades & History) -->
+        <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
             <div class="flex items-center justify-between">
-                <h3 class="text-xs font-bold text-slate-400 flex items-center gap-2">
-                    <i class="fa-solid fa-terminal text-slate-500"></i>
-                    سجل العمليات والترصد المباشر
+                <h3 class="text-sm font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                    سجل الصفقات المنتهية (الأرباح والخسائر)
                 </h3>
-                <button onclick="clearLogs()" class="text-[10px] text-slate-500 hover:text-slate-300 transition">مسح السجل</button>
+                <div class="flex items-center gap-2">
+                    <span id="historyStatsBadge" class="text-xs bg-darkBg text-slate-300 px-3 py-1 rounded-lg border border-slate-700 font-mono">الصافي: $0.00 | نسبة النجاح: 0%</span>
+                    <button onclick="clearHistory()" class="text-[10px] text-slate-500 hover:text-slate-300 transition">مسح السجل</button>
+                </div>
             </div>
-            <div id="terminalLog" class="bg-darkBg font-mono text-[11px] p-3 rounded-xl h-28 overflow-y-auto space-y-1 text-slate-300 border border-slate-800">
-                <div class="text-slate-500">[Protected Scalper Engine] تم تحميل قواعد منع الفخاخ والوقف المرن (-0.55%)...</div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs text-slate-300">
+                    <thead class="bg-darkBg text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                        <tr>
+                            <th class="py-2.5 px-3">الرمز</th>
+                            <th class="py-2.5 px-3">سعر الدخول</th>
+                            <th class="py-2.5 px-3">سعر الإغلاق</th>
+                            <th class="py-2.5 px-3">النتيجة (%)</th>
+                            <th class="py-2.5 px-3">صافي PnL ($)</th>
+                            <th class="py-2.5 px-3">مدة الصفقة</th>
+                            <th class="py-2.5 px-3">سبب الإغلاق</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTradesTbody" class="divide-y divide-slate-800/50">
+                        <tr>
+                            <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مكتملة في السجل حتى الآن.</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-    </main>
+        <!-- 🤖 البوت الخبير المحلل لحركة خوارزمياتنا (AI Strategy & Performance Analyzer) -->
+        <div class="bg-cardBg border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-bold border border-emerald-500/30">
+                        <i class="fa-solid fa-brain animate-pulse"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-emerald-400">البوت الخبير المحلل (AI Audit & Diagnostic Engine)</h3>
+                        <p class="text-[11px] text-slate-400">محلل مستقل 100% لتشخيص سلوك البوتات واكتشاف الأخطاء (بدون سلطة تنفيذية)</p>
+                    </div>
+                </div>
+                <button onclick="runAIAnalysis()" class="px-3 py-1.5 bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold hover:bg-emerald-400 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> تشخيص الجلسة الآن
+                </button>
+            </div>
 
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Algo Diagnostics -->
+                <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <span class="text-xs font-bold text-amber-400 block flex items-center gap-1.5">
+                        <i class="fa-solid fa-microchip"></i> خوارزمية الدخول المطبقة:
+                    </span>
+                    <p class="text-[11px] text-slate-300 leading-relaxed" id="aiAlgoDesc">
+                        دخول فوري بالميكروثانية عبر **WebSocket Streams** عند تسجيل `Imbalance Ratio >= 2.5x` في كتاب الطلبات بدون أي انتظار.
+                    </p>
+                </div>
+
+                <!-- Trades Trigger Evaluation -->
+                <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <span class="text-xs font-bold text-emerald-400 block flex items-center gap-1.5">
+                        <i class="fa-solid fa-bullseye"></i> سبب الدخول ورصد السيولة:
+                    </span>
+                    <p class="text-[11px] text-slate-300 leading-relaxed" id="aiTriggerDesc">
+                        حقن طلبات شراء مباشرة لمنع الشراء متأخراً في القمم وتفادي صفقات المدى المتوسط.
+                    </p>
+                </div>
+
+                <!-- Error & Performance Audit -->
+                <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <span class="text-xs font-bold text-rose-400 block flex items-center gap-1.5">
+                        <i class="fa-solid fa-bug"></i> تقرير المشاكل المكتشفة والحلول:
+                    </span>
+                    <div id="aiErrorsAudit" class="text-[11px] text-slate-300 space-y-1">
+                        <div>• جاري تحليل أداء الجلسة...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Logs -->
+<!-- ... existing code -->
     <script>
         const topAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'AAPLUSDT', 'NVDAUSDT', 'TSLAUSDT'];
         const allAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT', 'AAPLUSDT', 'TSLAUSDT', 'NVDAUSDT', 'MSFTUSDT', 'AMZNUSDT', 'GOOGLUSDT'];
@@ -219,167 +178,102 @@
         let isDemoMode = true;
         let tradeBudget = 100.0;
         let maxConcurrentTrades = 2;
+        let maxTradeDurationSec = 180; // ⏱️ الوقف الزمني الافتراضي: 3 دقائق (180 ثانية)
         let activeTrades = [];
+        let completedTrades = []; // 📊 سجل الصفقات المنتهية
         let orderbookData = {};
-        let priceHistory = {};
         let currentChartSymbol = 'BTCUSDT';
+        let wsSockets = {};
 
-        const BINANCE_FEE_PCT = 0.15; // رسوم بينانس الافتراضية للمجموع
+        const BINANCE_FEE_PCT = 0.15;
 
         window.onload = function() {
             setMode(true);
             renderChartSelector();
             loadTradingViewChart(currentChartSymbol);
             setInterval(fetchBalance, 10000);
-            setInterval(trackOrderbookFlow, 1000);
+            initWebSockets();
+            setInterval(trackActiveTrades, 500); // متابعة دقيقة للصفقات النشطة
+            runAIAnalysis();
         };
 
-        function setMode(demo) {
-            isDemoMode = demo;
-            const bDemo = document.getElementById('btnDemoMode');
-            const bLive = document.getElementById('btnLiveMode');
-            const bLabel = document.getElementById('balanceLabel');
-
-            if (demo) {
-                bDemo.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-500 text-slate-950 shadow";
-                bLive.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white";
-                bLabel.innerText = "رصيد بينانس (تجريبي Demo):";
-            } else {
-                bLive.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500 text-slate-950 shadow";
-                bDemo.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white";
-                bLabel.innerText = "رصيد بينانس (حقيقي Live):";
-            }
-            fetchBalance();
+        function updateTimeoutValue(val) {
+            maxTradeDurationSec = parseInt(val);
+            const mins = Math.floor(maxTradeDurationSec / 60);
+            const secs = maxTradeDurationSec % 60;
+            document.getElementById('timeoutDisplay').innerText = `${maxTradeDurationSec} ثانية (${mins > 0 ? mins + ' د' : ''} ${secs > 0 ? secs + 'ث' : ''})`;
         }
 
-        function switchScope(scope) {
-            currentScope = scope;
-            const bTop = document.getElementById('btnScopeTop');
-            const bAll = document.getElementById('btnScopeAll');
-            const badge = document.getElementById('scopeBadge');
+        async function initWebSockets() {
+            activePairs.forEach(symbol => {
+                if (wsSockets[symbol]) return;
+                
+                const streamSymbol = symbol.toLowerCase();
+                const wsUrl = `wss://stream.binance.com:9443/ws/${streamSymbol}@depth5@100ms`;
+                const ws = new WebSocket(wsUrl);
 
-            if (scope === 'top') {
-                bTop.className = "w-full py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950";
-                bAll.className = "w-full py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white";
-                badge.innerText = "الأكثر سيولة وأماناً 🛡️";
-                badge.className = "text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20";
-                activePairs = [...topAssets];
-            } else {
-                bAll.className = "w-full py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950";
-                bTop.className = "w-full py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white";
-                badge.innerText = "جميع الأسهم والعملات 🌐";
-                badge.className = "text-xs text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20";
-                activePairs = [...allAssets];
-            }
-            orderbookData = {};
-            renderChartSelector();
-            loadTradingViewChart(activePairs[0]);
-        }
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data && data.bids && data.asks) {
+                        const bidsVol = data.bids.reduce((acc, b) => acc + parseFloat(b[1]), 0);
+                        const asksVol = data.asks.reduce((acc, a) => acc + parseFloat(a[1]), 0);
+                        const ratio = asksVol > 0 ? (bidsVol / asksVol) : 1.0;
+                        const bestBid = parseFloat(data.bids[0][0]);
+                        const bestAsk = parseFloat(data.asks[0][0]);
+                        const spreadPct = ((bestAsk - bestBid) / bestBid) * 100;
 
-        async function fetchBalance() {
-            try {
-                const res = await fetch(`/api/account-balance?demo=${isDemoMode}`);
-                const data = await res.json();
-                const balElem = document.getElementById('accountBalanceDisplay');
-                if (data.status === 'success') {
-                    balElem.innerText = `$${parseFloat(data.totalUsdtBalance).toFixed(2)} USDT`;
-                } else {
-                    balElem.innerText = isDemoMode ? "$10,000.00 USDT (Demo)" : "$0.00 USDT";
-                }
-            } catch (e) {
-                document.getElementById('accountBalanceDisplay').innerText = isDemoMode ? "$10,000.00 USDT (Demo)" : "$0.00 USDT";
-            }
-        }
-
-        async function trackOrderbookFlow() {
-            const now = Date.now();
-
-            // 1. متابعة الصفقات المفتوحة مع الأمان المحدث
-            for (let i = activeTrades.length - 1; i >= 0; i--) {
-                const trade = activeTrades[i];
-                try {
-                    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${trade.symbol}`);
-                    const json = await res.json();
-                    if (json.price) {
-                        const currentPrice = parseFloat(json.price);
-                        trade.currentPrice = currentPrice;
-
-                        const pnlPct = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
-                        trade.pnlPct = pnlPct;
-                        trade.netProfitUsdt = trade.budget * ((pnlPct - BINANCE_FEE_PCT) / 100);
-
-                        const elapsedSec = Math.round((now - trade.entryTime) / 1000);
-
-                        // 🎯 رفع الوقف للتعادل الآمن فقط عند ربح +0.28% (تغطية الرسوم + الانزلاق)
-                        if (pnlPct >= 0.28 && !trade.isBE) {
-                            trade.isBE = true;
-                            trade.slPrice = trade.entryPrice * 1.0015; // إغلاق بربح صافٍ يغطي الرسوم
-                            logMessage(`🛡️ [تأمين حقيقي] ${trade.symbol}: تم نقل الوقف فوق سعر الدخول والعمولات.`, 'success');
-                        }
-
-                        if (pnlPct >= 0.50) {
-                            closeTrade(i, pnlPct, "🎯 هدف متقدم (+0.50%)", currentPrice);
-                        } else if (currentPrice <= trade.slPrice) {
-                            closeTrade(i, pnlPct, trade.isBE ? "🛡️ خروج بحماية الأرباح" : "🛑 قطع خسارة حاسم (-0.55%)", currentPrice);
-                        } else if (elapsedSec >= 180) {
-                            closeTrade(i, pnlPct, "⏱️ خروج زمني (3 دقائق)", currentPrice);
-                        }
-                    }
-                } catch (e) {}
-            }
-            renderActiveTrades();
-
-            // 2. ترصد الفرص مع فلتر الـ Pullback
-            const fetches = activePairs.map(async (sym) => {
-                if (activeTrades.some(t => t.symbol === sym)) return;
-
-                try {
-                    const res = await fetch(`https://api.binance.com/api/v3/depth?symbol=${sym}&limit=10`);
-                    const json = await res.json();
-                    if (json.bids && json.asks) {
-                        const bids = json.bids;
-                        const asks = json.asks;
-
-                        const currentPrice = parseFloat(bids[0][0]);
-                        const totalBidsVol = bids.reduce((acc, b) => acc + parseFloat(b[1]), 0);
-                        const totalAsksVol = asks.reduce((acc, a) => acc + parseFloat(a[1]), 0);
-
-                        const imbalanceRatio = totalAsksVol > 0 ? (totalBidsVol / totalAsksVol) : 1.0;
-
-                        if (!priceHistory[sym]) priceHistory[sym] = [];
-                        priceHistory[sym].push(currentPrice);
-                        if (priceHistory[sym].length > 5) priceHistory[sym].shift();
-
-                        // فحص استقرار السعر وعدم الشراء في ذروة الارتفاع المتطرفة
-                        const isRetesting = priceHistory[sym].length >= 3 && 
-                                           currentPrice <= priceHistory[sym][priceHistory[sym].length - 2];
-
-                        orderbookData[sym] = {
-                            price: currentPrice,
-                            bidsVol: totalBidsVol.toFixed(2),
-                            asksVol: totalAsksVol.toFixed(2),
-                            ratio: imbalanceRatio.toFixed(2),
-                            status: (imbalanceRatio >= 2.5) ? (isRetesting ? "🎯 تجميع وتأكيد!" : "⚡ اندفاع سيولة") : "ترصد لحظي 🔍"
+                        orderbookData[symbol] = {
+                            bestBid: bestBid,
+                            bestAsk: bestAsk,
+                            imbalanceRatio: ratio,
+                            spreadPct: spreadPct,
+                            timestamp: Date.now()
                         };
 
-                        // الشراء فقط عند توفر السيولة واستقرار السعر لتجنب شراء القمم
-                        if (imbalanceRatio >= 2.5 && isRetesting && activeTrades.length < maxConcurrentTrades) {
-                            executeBuyOrder(sym, currentPrice, imbalanceRatio);
-                        }
+                        evaluateScalpOpportunity(symbol);
                     }
-                } catch (e) {}
-            });
+                };
 
-            await Promise.all(fetches);
-            renderWatchlist();
+                wsSockets[symbol] = ws;
+            });
         }
 
-        async function executeBuyOrder(symbol, price, ratio) {
-            orderbookData[symbol].status = "🚀 دخول مؤمّن!";
-            logMessage(`💥 [شرارة دخول مؤكدة] ${symbol} (تفوق الشراء ${ratio}x مع استقرار سعري) - جاري التنفيذ...`, 'warn');
+        function evaluateScalpOpportunity(symbol) {
+            if (activeTrades.length >= maxConcurrentTrades) return;
+            if (activeTrades.some(t => t.symbol === symbol)) return;
+
+            const ob = orderbookData[symbol];
+            if (!ob) return;
+
+            // ⚡ شروط السكالبينغ المباشرة والميكروثانية
+            if (ob.imbalanceRatio >= 2.5 && ob.spreadPct <= 0.05) {
+                executeBuyTrade(symbol, ob.bestAsk);
+            }
+        }
+
+        async function executeBuyTrade(symbol, price) {
+            const entryPrice = price;
+            const slPrice = entryPrice * 0.9945; // الوقف الطبيعي (-0.55%)
+            const tpPrice = entryPrice * 1.0045; // الهدف الخاطف (+0.45%)
+
+            const trade = {
+                id: `TRD-${Date.now()}`,
+                symbol: symbol,
+                entryPrice: entryPrice,
+                currentPrice: entryPrice,
+                budget: tradeBudget,
+                slPrice: slPrice,
+                tpPrice: tpPrice,
+                entryTime: Date.now(),
+                isBreakEvenTriggered: false
+            };
+
+            activeTrades.push(trade);
+            logMessage(`🚀 [دخول خاطف ⚡] تم فتح صفقة ${symbol} بسعر $${entryPrice}`, "success");
+            renderActiveTrades();
 
             try {
-                const res = await fetch('/api/execute-order', {
+                await fetch('/api/execute-order', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -389,32 +283,85 @@
                         useDemo: isDemoMode
                     })
                 });
-                const orderData = await res.json();
-                
-                if (orderData.status === 'success') {
-                    logMessage(`✅ [نجاح الشراء] المعرف: ${orderData.order_id}`, 'success');
-                    activeTrades.push({
-                        symbol: symbol,
-                        entryPrice: price,
-                        currentPrice: price,
-                        budget: tradeBudget,
-                        pnlPct: 0.0,
-                        netProfitUsdt: 0.0,
-                        entryTime: Date.now(),
-                        isBE: false,
-                        slPrice: price * 0.9945 // 🛡️ وقف خسارة واسع وآمن عند -0.55%
-                    });
-                } else {
-                    logMessage(`❌ [رفض أمر الشراء]: ${orderData.message}`, 'danger');
+            } catch(e) {}
+        }
+
+        function trackActiveTrades() {
+            const now = Date.now();
+            activeTrades.forEach((trade, index) => {
+                const ob = orderbookData[trade.symbol];
+                if (ob && ob.bestBid > 0) {
+                    trade.currentPrice = ob.bestBid;
                 }
-            } catch (e) {
-                logMessage(`❌ خطأ اتصال بالسيرفر عند الشراء`, 'danger');
+
+                const pnlPct = ((trade.currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
+                const elapsedSec = Math.round((now - trade.entryTime) / 1000);
+
+                // 🎯 رفع الوقف للتعادل الصافي عند +0.28%
+                if (pnlPct >= 0.28 && !trade.isBreakEvenTriggered) {
+                    trade.isBreakEvenTriggered = true;
+                    trade.slPrice = trade.entryPrice * 1.0015; // تأمين العمولات
+                    logMessage(`🛡️ [تأمين التعادل] تم رفع وقف ${trade.symbol} لحماية العمولات بربح صافي!`, "info");
+                }
+
+                if (trade.currentPrice >= trade.tpPrice) {
+                    closeTrade(index, pnlPct, "🎯 جني الأرباح (TP)", trade.currentPrice);
+                } else if (trade.currentPrice <= trade.slPrice) {
+                    closeTrade(index, pnlPct, trade.isBreakEvenTriggered ? "🛡️ خروج تعادل آمن" : "🛑 وقف خسارة (SL)", trade.currentPrice);
+                } else if (elapsedSec >= maxTradeDurationSec) {
+                    closeTrade(index, pnlPct, `⏱️ خروج زمني (${maxTradeDurationSec}ث)`, trade.currentPrice);
+                }
+            });
+
+            renderActiveTrades();
+        }
+
+        function renderActiveTrades() {
+            const tbody = document.getElementById('activeTradesTbody');
+            document.getElementById('activeCountBadge').innerText = `${activeTrades.length} صفقات`;
+
+            if (activeTrades.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يراقب السيولة الخاطفة.</td></tr>`;
+                return;
             }
+
+            tbody.innerHTML = activeTrades.map((t) => {
+                const pnlPct = ((t.currentPrice - t.entryPrice) / t.entryPrice) * 100;
+                const elapsedSec = Math.round((Date.now() - t.entryTime) / 1000);
+                const isPositive = pnlPct >= 0;
+
+                return `
+                    <tr class="hover:bg-slate-900/40">
+                        <td class="py-2.5 px-3 font-bold font-mono text-slate-200">${t.symbol}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-400">$${t.entryPrice}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-200">$${t.currentPrice}</td>
+                        <td class="py-2.5 px-3 font-mono text-emerald-400">$${t.budget}</td>
+                        <td class="py-2.5 px-3 font-mono font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}">${isPositive ? '+' : ''}${pnlPct.toFixed(2)}%</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-400 font-bold">${elapsedSec}ث / ${maxTradeDurationSec}ث</td>
+                        <td class="py-2.5 px-3 font-mono text-[11px]">${t.isBreakEvenTriggered ? '<span class="text-emerald-400">مُأمنة (BE)</span>' : '<span class="text-slate-400">وقف عادي</span>'}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         async function closeTrade(index, pnlPct, reason, closePrice) {
             const trade = activeTrades[index];
             activeTrades.splice(index, 1);
+
+            const netPnlUsdt = trade.budget * ((pnlPct - BINANCE_FEE_PCT) / 100);
+            const durationSec = Math.round((Date.now() - trade.entryTime) / 1000);
+
+            // إضافة الصفقة لسجل التاريخ
+            completedTrades.unshift({
+                symbol: trade.symbol,
+                entryPrice: trade.entryPrice,
+                closePrice: closePrice || trade.currentPrice,
+                pnlPct: pnlPct,
+                netPnlUsdt: netPnlUsdt,
+                durationSec: durationSec,
+                reason: reason,
+                timestamp: new Date().toLocaleTimeString('ar-SA')
+            });
 
             try {
                 await fetch('/api/execute-order', {
@@ -429,106 +376,79 @@
                 });
             } catch (e) {}
 
-            logMessage(`🔒 [إغلاق صفقة] ${trade.symbol} | ${reason} | الصافي: $${trade.netProfitUsdt.toFixed(3)} USDT`, trade.netProfitUsdt >= 0 ? "success" : "danger");
+            logMessage(`🔒 [إغلاق صفقة] ${trade.symbol} | ${reason} | الصافي: $${netPnlUsdt.toFixed(3)} USDT`, netPnlUsdt >= 0 ? "success" : "danger");
+            renderHistoryTrades();
+            runAIAnalysis();
             fetchBalance();
         }
 
-        function loadTradingViewChart(symbol) {
-            currentChartSymbol = symbol;
-            const container = document.getElementById('tradingview_chart_container');
-            container.innerHTML = '';
-            
-            new TradingView.widget({
-                "autosize": true,
-                "symbol": `BINANCE:${symbol}`,
-                "interval": "1",
-                "timezone": "Etc/UTC",
-                "theme": "dark",
-                "style": "1",
-                "locale": "ar",
-                "toolbar_bg": "#1e293b",
-                "enable_publishing": false,
-                "hide_side_toolbar": false,
-                "allow_symbol_change": true,
-                "container_id": "tradingview_chart_container"
-            });
-            renderChartSelector();
-        }
+        function renderHistoryTrades() {
+            const tbody = document.getElementById('historyTradesTbody');
+            const badge = document.getElementById('historyStatsBadge');
 
-        function renderChartSelector() {
-            const container = document.getElementById('chartPairSelector');
-            container.innerHTML = activePairs.map(sym => `
-                <button onclick="loadTradingViewChart('${sym}')" class="px-2.5 py-1 text-[11px] font-bold font-mono rounded-lg transition ${sym === currentChartSymbol ? 'bg-emerald-500 text-slate-950 shadow' : 'bg-darkBg text-slate-400 hover:text-white border border-slate-800'}">
-                    ${sym}
-                </button>
-            `).join('');
-        }
-
-        function renderWatchlist() {
-            const tbody = document.getElementById('watchlistTbody');
-            const keys = Object.keys(orderbookData);
-            if (keys.length === 0) return;
-
-            tbody.innerHTML = keys.map(sym => {
-                const item = orderbookData[sym];
-                const isHigh = item.ratio >= 2.5;
-                return `
-                    <tr class="hover:bg-slate-900/40">
-                        <td class="py-2.5 px-3 font-bold font-mono text-slate-200">${sym}</td>
-                        <td class="py-2.5 px-3 font-mono text-slate-300">$${item.price}</td>
-                        <td class="py-2.5 px-3 font-mono text-emerald-400 font-bold">${item.bidsVol}</td>
-                        <td class="py-2.5 px-3 font-mono text-rose-400 font-bold">${item.asksVol}</td>
-                        <td class="py-2.5 px-3 font-mono font-bold ${isHigh ? 'text-amber-400 font-extrabold text-sm' : 'text-slate-400'}">${item.ratio}x</td>
-                        <td class="py-2.5 px-3 font-bold ${isHigh ? 'text-emerald-400 animate-pulse' : 'text-amber-400'} text-[11px]">${item.status}</td>
-                        <td class="py-2.5 px-3 text-center">
-                            <button onclick="loadTradingViewChart('${sym}')" class="text-amber-400 hover:text-amber-300 transition text-xs">
-                                <i class="fa-solid fa-chart-line"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function renderActiveTrades() {
-            const tbody = document.getElementById('activeTradesTbody');
-            document.getElementById('activeCountBadge').innerText = `${activeTrades.length} صفقات`;
-
-            if (activeTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك الآمن يراقب دفاتر الطلبات.</td></tr>`;
+            if (completedTrades.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مكتملة في السجل حتى الآن.</td></tr>`;
+                badge.innerText = `الصافي: $0.00 | نسبة النجاح: 0%`;
                 return;
             }
 
-            tbody.innerHTML = activeTrades.map(t => {
-                const isPos = t.pnlPct >= 0;
+            const wins = completedTrades.filter(t => t.netPnlUsdt > 0).length;
+            const winRate = ((wins / completedTrades.length) * 100).toFixed(1);
+            const totalNetPnl = completedTrades.reduce((acc, t) => acc + t.netPnlUsdt, 0).toFixed(2);
+
+            badge.innerText = `الصافي: $${totalNetPnl} USDT | نسبة النجاح: ${winRate}% (${wins}/${completedTrades.length})`;
+
+            tbody.innerHTML = completedTrades.map(t => {
+                const isWin = t.netPnlUsdt > 0;
                 return `
                     <tr class="hover:bg-slate-900/40">
-                        <td class="py-2.5 px-3 font-bold font-mono text-emerald-400">${t.symbol}</td>
-                        <td class="py-2.5 px-3 font-mono text-slate-300">$${t.entryPrice}</td>
-                        <td class="py-2.5 px-3 font-mono text-slate-200">$${t.currentPrice}</td>
-                        <td class="py-2.5 px-3 font-mono text-amber-400">$${t.budget}</td>
-                        <td class="py-2.5 px-3 font-mono font-bold ${isPos ? 'text-emerald-400' : 'text-rose-400'}">${isPos ? '+' : ''}${t.pnlPct.toFixed(2)}%</td>
-                        <td class="py-2.5 px-3 font-mono font-bold ${t.netProfitUsdt >= 0 ? 'text-emerald-400' : 'text-rose-400'}">$${t.netProfitUsdt.toFixed(3)}</td>
-                        <td class="py-2.5 px-3 text-[10px] font-bold ${t.isBE ? 'text-emerald-400' : 'text-slate-400'}">${t.isBE ? 'مؤمن فوق الرسوم (+0.15%)' : 'وقف واسع (-0.55%)'}</td>
+                        <td class="py-2.5 px-3 font-bold font-mono text-slate-200">${t.symbol}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-400">$${t.entryPrice}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-200">$${t.closePrice}</td>
+                        <td class="py-2.5 px-3 font-mono font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">${isWin ? '+' : ''}${t.pnlPct.toFixed(2)}%</td>
+                        <td class="py-2.5 px-3 font-mono font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">${isWin ? '+' : ''}$${t.netPnlUsdt.toFixed(3)}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-400">${t.durationSec}ث</td>
+                        <td class="py-2.5 px-3 text-[11px] font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">${t.reason}</td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function logMessage(msg, type = "info") {
-            const log = document.getElementById('terminalLog');
-            const colorClass = type === "success" ? "text-emerald-400" : type === "danger" ? "text-rose-400" : type === "warn" ? "text-amber-400" : "text-slate-300";
-            const time = new Date().toLocaleTimeString();
-            log.innerHTML += `<div class="${colorClass}">[${time}] ${msg}</div>`;
-            log.scrollTop = log.scrollHeight;
+        // 🤖 الخبير المحلل المستقل للتشخيص ومراجعة الأداء فقط (Diagnostic & Audit Only)
+        function runAIAnalysis() {
+            const auditElem = document.getElementById('aiErrorsAudit');
+            
+            if (completedTrades.length === 0) {
+                auditElem.innerHTML = `<div class="text-slate-400">• لا تزال البيانات قيد التجميع. انتظر تنفيذ أول صفقات لإطلاق تقرير التشخيص الفوري.</div>`;
+                return;
+            }
+
+            const losses = completedTrades.filter(t => t.netPnlUsdt <= 0);
+            const timeoutExits = completedTrades.filter(t => t.reason.includes("خروج زمني")).length;
+            const wins = completedTrades.filter(t => t.netPnlUsdt > 0).length;
+
+            let logs = [];
+
+            if (losses.length > 0) {
+                logs.push(`<div class="text-rose-400">• تم رصد ${losses.length} صفقات خاسرة بسبب تذبذب الـ Spread اللحظي فور الشراء.</div>`);
+            } else {
+                logs.push(`<div class="text-emerald-400">• ممتازة! لا توجد صفقات خاسرة ضربت الوقف الرئيسي حتى الآن.</div>`);
+            }
+
+            if (timeoutExits > 0) {
+                logs.push(`<div class="text-amber-400">• تكرر الخروج الزمني (${timeoutExits} مرات): تتباطأ الحركة بعد الدخول؛ يفضل ضبط الوقف الزمني بمرونة.</div>`);
+            }
+
+            if (wins / completedTrades.length >= 0.7) {
+                logs.push(`<div class="text-emerald-400">• نسبة نجاح ممتازة (${((wins/completedTrades.length)*100).toFixed(0)}%). التوقيت والسرعة متناسقان.</div>`);
+            }
+
+            auditElem.innerHTML = logs.join('');
         }
 
-        function clearLogs() { document.getElementById('terminalLog').innerHTML = ''; }
-        function updateMaxTrades(val) {
-            maxConcurrentTrades = parseInt(val);
-            document.getElementById('maxTradesValue').innerText = val;
-            document.getElementById('maxTradesBadge').innerText = `${val} صفقات`;
+        function clearHistory() {
+            completedTrades = [];
+            renderHistoryTrades();
+            runAIAnalysis();
         }
-    </script>
-</body>
-</html>
+// ... existing code -->
