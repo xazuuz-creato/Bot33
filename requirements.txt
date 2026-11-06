@@ -4,3 +4,4 @@ gunicorn==21.2.0
 ccxt==4.2.75
 websockets==12.0
 aiohttp==3.9.3
+pydantic==2.6.4
