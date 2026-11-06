@@ -13,7 +13,7 @@ except ImportError:
 app = FastAPI(
     title="Binance Scalper Engine Backend",
     description="Scalper Backend with 12 Top & 30 Assets Support",
-    version="12.0.0"
+    version="12.5.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -56,9 +56,9 @@ async def get_config():
     return {
         "hasEnvKeys": bool(api_k),
         "apiKeyMasked": f"{api_k[:8]}...{api_k[-6:]}" if api_k else "",
-        "mode": "Scalping Engine v12 ⚡",
+        "mode": "Scalping Engine v12.5 ⚡",
         "hasCcxtPro": ccxtpro is not None,
-        "message": "المحرك جاهز ومتوافق مع أفضل 12 رمز وكافة الأسهم والعملات!"
+        "message": "المحرك جاهز بنظام فلترة السيولة الفائقة (3.0x) والسكالبينغ الخاطف!"
     }
 
 @app.get("/api/account-balance")
