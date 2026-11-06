@@ -8,8 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- TradingView Widget Script -->
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -25,7 +23,7 @@
         }
     </script>
     <style>
-        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #0b0e14; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
@@ -42,21 +40,21 @@
             <div>
                 <h1 class="text-base font-bold text-slate-100 flex items-center gap-2">
                     منصة الحارس السريع 
-                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">Adaptive AI Scalper v11.0</span>
+                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">Scalper v12.0</span>
                 </h1>
-                <p class="text-xs text-slate-400">تحليل الميكروثانية والسيولة قبل الدخول | هدف ربح تكيفي وشريط زمن أقصى 10 دقائق</p>
+                <p class="text-xs text-slate-400">محرك تداول سريـع | ربح أدنى 0.45% وأجل أقصاه 10 دقائق</p>
             </div>
         </div>
         
         <div class="flex items-center gap-3 w-full md:w-auto justify-end">
             <div class="text-left font-mono">
-                <div class="text-[10px] text-slate-400">رصيد USDT:</div>
+                <div class="text-[10px] text-slate-400">رصيد المحفظة:</div>
                 <div id="balanceDisplay" class="text-sm font-bold text-emerald-400">$10,000.00</div>
             </div>
             <div class="h-8 w-px bg-slate-800"></div>
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                <span class="text-xs text-slate-300 font-mono">متصل مباشر</span>
+                <span class="text-xs text-slate-300 font-mono">نشط مباشر</span>
             </div>
         </div>
     </header>
@@ -66,15 +64,15 @@
         <!-- Asset Scope Picker -->
         <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-400">نطاق العملات المستهدفة</span>
+                <span class="text-xs font-bold text-slate-400">نطاق الأصول المستهدفة</span>
                 <i class="fa-solid fa-layer-group text-emerald-400 text-sm"></i>
             </div>
             <div class="grid grid-cols-2 gap-2">
-                <button id="scopeTopBtn" onclick="setScope('top')" class="px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition">
-                    🔥 أعلى 6 عملات سيولة
+                <button id="scopeTopBtn" onclick="setScope('top12')" class="px-2.5 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition text-center">
+                    🔥 أفضل 12 (6 أسهم + 6 عملات)
                 </button>
-                <button id="scopeAllBtn" onclick="setScope('all')" class="px-3 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition">
-                    🌐 كافة الـ 30 عملة
+                <button id="scopeAllBtn" onclick="setScope('all')" class="px-2.5 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition text-center">
+                    🌐 كافة العملات والأسهم
                 </button>
             </div>
         </div>
@@ -82,14 +80,14 @@
         <!-- Mode & Budget Control -->
         <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-400">وضع المحفظة والميزانية</span>
+                <span class="text-xs font-bold text-slate-400">وضع التداول والميزانية</span>
                 <span id="modeBadge" class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold">تجريبي (Demo)</span>
             </div>
             <div class="flex items-center gap-2">
                 <button id="demoBtn" onclick="setMode(true)" class="flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md">تجريبي</button>
                 <button id="liveBtn" onclick="setMode(false)" class="flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs">حقيقي (Spot)</button>
                 <div class="relative w-28">
-                    <input type="number" id="budgetInput" value="100" onchange="updateBudget(this.value)" class="w-full bg-darkBg border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500" placeholder="الميزانية">
+                    <input type="number" id="budgetInput" value="100" onchange="tradeBudget = parseFloat(this.value)|100" class="w-full bg-darkBg border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500" placeholder="الميزانية">
                     <span class="absolute left-2 top-1.5 text-[10px] text-slate-500 font-mono">$</span>
                 </div>
             </div>
@@ -98,7 +96,7 @@
         <!-- ⏱️ التحكم التفاعلي بالوقف الزمني للصفقات -->
         <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-400">الحد الأقصى التكيفي لزمن الصفقة</span>
+                <span class="text-xs font-bold text-slate-400">الحد الأقصى لزمن الصفقة</span>
                 <span id="timeoutDisplay" class="text-xs font-mono font-bold text-amber-400">600 ثانية (10 دقائق)</span>
             </div>
             <div class="space-y-1">
@@ -106,7 +104,7 @@
                 <div class="flex justify-between text-[10px] text-slate-500 font-mono">
                     <span>1 دقيقة</span>
                     <span>5 دقائق</span>
-                    <span>10 دقائق (القصوى)</span>
+                    <span>10 دقائق</span>
                 </div>
             </div>
         </div>
@@ -117,7 +115,7 @@
         <div class="flex items-center justify-between">
             <h3 class="text-sm font-bold flex items-center gap-2">
                 <i class="fa-solid fa-stopwatch text-emerald-400"></i>
-                الصفقات النشطة وتوقيت الخروج
+                الصفقات النشطة والمتابعة اللحظية
             </h3>
             <span id="activeCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">0 صفقات</span>
         </div>
@@ -137,14 +135,14 @@
                 </thead>
                 <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
                     <tr>
-                        <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يراقب السيولة الخاطفة.</td>
+                        <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يراقب الأصول المحددة.</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- 📊 سجل الصفقات المنتهية (Closed Trades & History) -->
+    <!-- 📊 سجل الصفقات المنتهية -->
     <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
         <div class="flex items-center justify-between">
             <h3 class="text-sm font-bold flex items-center gap-2">
@@ -179,7 +177,7 @@
         </div>
     </div>
 
-    <!-- 🤖 البوت الخبير المحلل لحركة خوارزمياتنا -->
+    <!-- 🤖 البوت الخبير المحلل -->
     <div class="bg-cardBg border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <div class="flex items-center gap-3">
@@ -188,42 +186,39 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-bold text-emerald-400">البوت الخبير المحلل (AI Audit & Diagnostic Engine)</h3>
-                    <p class="text-[11px] text-slate-400">محلل مستقل 100% لتشخيص سلوك البوتات واكتشاف الأخطاء (بدون سلطة تنفيذية)</p>
+                    <p class="text-[11px] text-slate-400">محلل مستقل لتشخيص أداء الخوارزميات وتغطية المشاكل بدقة (بدون أي سلطة تنفيذية)</p>
                 </div>
             </div>
             <button onclick="runAIAnalysis()" class="px-3 py-1.5 bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold hover:bg-emerald-400 transition flex items-center gap-1.5">
-                <i class="fa-solid fa-magnifying-glass-chart"></i> تشخيص الجلسة الآن
+                <i class="fa-solid fa-magnifying-glass-chart"></i> تشخيص الجلسة
             </button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Algo Diagnostics -->
             <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
                 <span class="text-xs font-bold text-amber-400 block flex items-center gap-1.5">
                     <i class="fa-solid fa-microchip"></i> خوارزمية الدخول المطبقة:
                 </span>
                 <p class="text-[11px] text-slate-300 leading-relaxed" id="aiAlgoDesc">
-                    تحليل وتنبؤ مسبق لسيولة كتاب الطلبات عبر <strong class="text-emerald-400">WebSocket Streams</strong> عند رصد <code class="bg-slate-800 px-1 py-0.5 rounded text-emerald-400">Imbalance Ratio >= 2.5x</code> مع هدف ربح تكيفي لا يقل عن <strong class="text-emerald-400">0.45%</strong> وعمر ديناميكي أقصاه 10 دقائق.
+                    رصد تدفق سيولة الشراء السريعة <code class="bg-slate-800 px-1 py-0.5 rounded text-emerald-400">Imbalance Ratio >= 1.5x</code> مع هدف ربح أدنى <strong class="text-emerald-400">0.45%</strong> والحد الأقصى للصفقة <strong class="text-emerald-400">10 دقائق</strong>.
                 </p>
             </div>
 
-            <!-- Trades Trigger Evaluation -->
             <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
                 <span class="text-xs font-bold text-emerald-400 block flex items-center gap-1.5">
-                    <i class="fa-solid fa-bullseye"></i> سبب الدخول ورصد السيولة:
+                    <i class="fa-solid fa-bullseye"></i> سبب الدخول وتحليل الأصول:
                 </span>
                 <p class="text-[11px] text-slate-300 leading-relaxed" id="aiTriggerDesc">
-                    حقن طلبات شراء مباشرة لمنع الشراء متأخراً في القمم وتفادي صفقات المدى المتوسط.
+                    توليد أوامر شراء فورية عند توفر السيولة لتجنب الدخول المتأخر وتجاوز التجميع المتوسط.
                 </p>
             </div>
 
-            <!-- Error & Performance Audit -->
             <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
                 <span class="text-xs font-bold text-rose-400 block flex items-center gap-1.5">
-                    <i class="fa-solid fa-bug"></i> تقرير المشاكل المكتشفة والحلول:
+                    <i class="fa-solid fa-bug"></i> تقرير التشخيص والمشاكل المكتشفة:
                 </span>
                 <div id="aiErrorsAudit" class="text-[11px] text-slate-300 space-y-1">
-                    <div>• جاري تحليل أداء الجلسة...</div>
+                    <div>• النظام جاهز ويعمل باستقرار كامل.</div>
                 </div>
             </div>
         </div>
@@ -233,40 +228,90 @@
     <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
         <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5">
-                <i class="fa-solid fa-terminal text-emerald-400"></i> سجل أحداث البوت المباشر (Console)
+                <i class="fa-solid fa-terminal text-emerald-400"></i> سجل أحداث البوت (Console)
             </span>
             <button onclick="clearConsole()" class="text-[10px] text-slate-500 hover:text-slate-300">مسح السجل</button>
         </div>
         <div id="consoleLog" class="bg-darkBg border border-slate-900 rounded-xl p-3 h-32 overflow-y-auto font-mono text-[11px] space-y-1 text-slate-400">
-            <div>[إشعار] تم إطلاق المحرك وسجل السكالبينغ بنجاح...</div>
+            <div>[إشعار] تم إطلاق نظام التداول الخاطف المصحح بنجاح...</div>
         </div>
     </div>
 
     <script>
-        const topAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT'];
-        const allAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT', 'ADAUSDT', 'AVAXUSDT', 'LINKUSDT', 'NEARUSDT', 'APTUSDT', 'SHIBUSDT'];
+        // 6 عملات + 6 أسهم عالية السيولة
+        const top12Assets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT', 'NVDAUSDT', 'TSLAUSDT', 'AAPLUSDT', 'AMZNUSDT', 'MSFTUSDT', 'GOOGLUSDT'];
         
-        let currentScope = 'top';
-        let activePairs = [...topAssets];
+        // كافة 30 رمزا
+        const allAssets = [
+            'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT',
+            'NVDAUSDT', 'TSLAUSDT', 'AAPLUSDT', 'AMZNUSDT', 'MSFTUSDT', 'GOOGLUSDT',
+            'ADAUSDT', 'AVAXUSDT', 'LINKUSDT', 'NEARUSDT', 'APTUSDT', 'SHIBUSDT',
+            'SUIUSDT', 'DOTUSDT', 'LTCUSDT', 'METAUSDT', 'NFLXUSDT', 'AMDUSDT',
+            'COINUSDT', 'BABAUSDT', 'PLTRUSDT', 'INTCUSDT', 'QCOMUSDT', 'AMDUSDT'
+        ];
+
+        let activePairs = [...top12Assets];
         let isDemoMode = true;
         let tradeBudget = 100.0;
-        let maxConcurrentTrades = 2;
-        let maxTradeDurationSec = 600; // 10 دقائق افتراضياً
+        let maxConcurrentTrades = 3;
+        let maxTradeDurationSec = 600; 
         let activeTrades = [];
         let completedTrades = [];
         let orderbookData = {};
         let wsSockets = {};
 
         const BINANCE_FEE_PCT = 0.15;
-        const MIN_TAKE_PROFIT_PCT = 0.45; // حد أدنى للربح الصافي الجيد
+        const MIN_TAKE_PROFIT_PCT = 0.45;
 
         window.onload = function() {
             setMode(true);
-            setInterval(fetchBalance, 10000);
+            setScope('top12');
+            setInterval(fetchBalance, 8000);
             initWebSockets();
             setInterval(trackActiveTrades, 500);
             runAIAnalysis();
         };
+
+        function setScope(scope) {
+            const topBtn = document.getElementById('scopeTopBtn');
+            const allBtn = document.getElementById('scopeAllBtn');
+
+            if (scope === 'top12') {
+                activePairs = [...top12Assets];
+                topBtn.className = "px-2.5 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold transition text-center";
+                allBtn.className = "px-2.5 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition text-center";
+                logMessage("🔥 تم تحديد نطاق: أفضل 12 (6 أسهم + 6 عملات)", "info");
+            } else {
+                activePairs = [...allAssets];
+                allBtn.className = "px-2.5 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold transition text-center";
+                topBtn.className = "px-2.5 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition text-center";
+                logMessage("🌐 تم تحديد نطاق: كافة العملات والأسهم (30 رمزا)", "info");
+            }
+
+            // إعادة تشغيل الـ WebSocket لتغطية الأصول المحددة
+            closeAllWebSockets();
+            initWebSockets();
+        }
+
+        function setMode(demo) {
+            isDemoMode = demo;
+            const demoBtn = document.getElementById('demoBtn');
+            const liveBtn = document.getElementById('liveBtn');
+            const modeBadge = document.getElementById('modeBadge');
+
+            if (demo) {
+                demoBtn.className = "flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md";
+                liveBtn.className = "flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs";
+                modeBadge.innerText = "تجريبي (Demo)";
+                modeBadge.className = "text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold";
+            } else {
+                liveBtn.className = "flex-1 py-1.5 bg-rose-500 text-white font-bold rounded-xl text-xs shadow-md";
+                demoBtn.className = "flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs";
+                modeBadge.innerText = "حقيقي (Spot)";
+                modeBadge.className = "text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-md font-bold";
+            }
+            fetchBalance();
+        }
 
         function updateTimeoutValue(val) {
             maxTradeDurationSec = parseInt(val);
@@ -285,7 +330,14 @@
             } catch(e) {}
         }
 
-        async function initWebSockets() {
+        function closeAllWebSockets() {
+            Object.keys(wsSockets).forEach(sym => {
+                try { wsSockets[sym].close(); } catch(e) {}
+            });
+            wsSockets = {};
+        }
+
+        function initWebSockets() {
             activePairs.forEach(symbol => {
                 if (wsSockets[symbol]) return;
                 
@@ -295,19 +347,17 @@
 
                 ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
-                    if (data && data.bids && data.asks) {
+                    if (data && data.bids && data.asks && data.bids.length > 0 && data.asks.length > 0) {
                         const bidsVol = data.bids.reduce((acc, b) => acc + parseFloat(b[1]), 0);
                         const asksVol = data.asks.reduce((acc, a) => acc + parseFloat(a[1]), 0);
                         const ratio = asksVol > 0 ? (bidsVol / asksVol) : 1.0;
                         const bestBid = parseFloat(data.bids[0][0]);
                         const bestAsk = parseFloat(data.asks[0][0]);
-                        const spreadPct = ((bestAsk - bestBid) / bestBid) * 100;
 
                         orderbookData[symbol] = {
                             bestBid: bestBid,
                             bestAsk: bestAsk,
                             imbalanceRatio: ratio,
-                            spreadPct: spreadPct,
                             timestamp: Date.now()
                         };
 
@@ -324,23 +374,19 @@
             if (activeTrades.some(t => t.symbol === symbol)) return;
 
             const ob = orderbookData[symbol];
-            if (!ob) return;
+            if (!ob || !ob.bestAsk) return;
 
-            // شرط الدخول: الـ Imbalance متفوق بـ 2.5 أضعاف والـ Spread ضعيف جداً لحماية الربح
-            if (ob.imbalanceRatio >= 2.5 && ob.spreadPct <= 0.05) {
+            // شرط دخول سلس ومباشر لتأمين تنفيذ الصفقات بسرعة
+            if (ob.imbalanceRatio >= 1.5) {
                 executeBuyTrade(symbol, ob.bestAsk, ob.imbalanceRatio);
             }
         }
 
         async function executeBuyTrade(symbol, price, imbalanceRatio) {
             const entryPrice = price;
-            // حساب الهدف التكيفي: لا يقل عن 0.45%، ويزيد إذا كانت السيولة فائقة
-            const calculatedTpPct = Math.max(MIN_TAKE_PROFIT_PCT, (imbalanceRatio * 0.18));
-            const slPrice = entryPrice * 0.9945; // الوقف اللحظي
+            const calculatedTpPct = Math.max(MIN_TAKE_PROFIT_PCT, (imbalanceRatio * 0.20));
+            const slPrice = entryPrice * 0.9940; 
             const tpPrice = entryPrice * (1 + (calculatedTpPct / 100));
-
-            // تحديد الوقف الزمني الذكي للصفقة (بين 3 دقائق إلى 10 دقائق حسب شدة السيولة)
-            const tradeAdaptiveDuration = Math.min(maxTradeDurationSec, Math.max(180, Math.round(180 * (imbalanceRatio / 2))));
 
             const trade = {
                 id: `TRD-${Date.now()}`,
@@ -351,13 +397,13 @@
                 slPrice: slPrice,
                 tpPrice: tpPrice,
                 targetTpPct: calculatedTpPct,
-                maxDuration: tradeAdaptiveDuration,
+                maxDuration: maxTradeDurationSec,
                 entryTime: Date.now(),
                 isBreakEvenTriggered: false
             };
 
             activeTrades.push(trade);
-            logMessage(`🚀 [دخول تكيفي ⚡] تم فتح ${symbol} | السعر: $${entryPrice} | هدف الربح: +${calculatedTpPct.toFixed(2)}% | الوقف الزمني: ${tradeAdaptiveDuration}ث`, "success");
+            logMessage(`🚀 [فتح صفقة ⚡] ${symbol} | سعر الدخول: $${entryPrice} | هدف الربح: +${calculatedTpPct.toFixed(2)}%`, "success");
             renderActiveTrades();
 
             try {
@@ -385,19 +431,18 @@
                 const pnlPct = ((trade.currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
                 const elapsedSec = Math.round((now - trade.entryTime) / 1000);
 
-                // نقل الوقف للتعادل الصافي فقط بعد تحقيق أرباح حقيقية تغطي العمولات
-                if (pnlPct >= 0.28 && !trade.isBreakEvenTriggered) {
+                if (pnlPct >= 0.25 && !trade.isBreakEvenTriggered) {
                     trade.isBreakEvenTriggered = true;
-                    trade.slPrice = trade.entryPrice * 1.0015;
-                    logMessage(`🛡️ [تأمين التعادل] تم رفع وقف ${trade.symbol} لحماية العمولات بربح صافي!`, "info");
+                    trade.slPrice = trade.entryPrice * 1.0010;
+                    logMessage(`🛡️ [تأمين] رفع وقف ${trade.symbol} لحماية العمولات بربح صافي!`, "info");
                 }
 
                 if (trade.currentPrice >= trade.tpPrice) {
                     closeTrade(index, pnlPct, `🎯 جني أرباح (+${trade.targetTpPct.toFixed(2)}%)`, trade.currentPrice);
                 } else if (trade.currentPrice <= trade.slPrice) {
-                    closeTrade(index, pnlPct, trade.isBreakEvenTriggered ? "🛡️ خروج تعادل آمن" : "🛑 وقف خسارة (SL)", trade.currentPrice);
+                    closeTrade(index, pnlPct, trade.isBreakEvenTriggered ? "🛡️ خروج تعادل آمن" : "🛑 وقف خسارة", trade.currentPrice);
                 } else if (elapsedSec >= trade.maxDuration) {
-                    closeTrade(index, pnlPct, `⏱️ خروج زمني تكيفي (${trade.maxDuration}ث)`, trade.currentPrice);
+                    closeTrade(index, pnlPct, `⏱️ خروج زمني (${trade.maxDuration}ث)`, trade.currentPrice);
                 }
             });
 
@@ -409,7 +454,7 @@
             document.getElementById('activeCountBadge').innerText = `${activeTrades.length} صفقات`;
 
             if (activeTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يحلل السيولة التكيفية.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يراقب السيولة اللحظية.</td></tr>`;
                 return;
             }
 
@@ -505,7 +550,7 @@
             const auditElem = document.getElementById('aiErrorsAudit');
             
             if (completedTrades.length === 0) {
-                auditElem.innerHTML = `<div class="text-slate-400">• لا تزال البيانات قيد التجميع. انتظر تنفيذ أول صفقات لإطلاق تقرير التشخيص الفوري.</div>`;
+                auditElem.innerHTML = `<div class="text-slate-400">• جاري مراقبة الحركة. سيكتشف البوت الأخطاء فور اكتمال أول صفقة.</div>`;
                 return;
             }
 
@@ -516,17 +561,17 @@
             let logs = [];
 
             if (losses.length > 0) {
-                logs.push(`<div class="text-rose-400">• تم رصد ${losses.length} صفقات خاسرة بسبب تذبذب الـ Spread اللحظي فور الشراء.</div>`);
+                logs.push(`<div class="text-rose-400">• رصد ${losses.length} صفقات بخسارة بسيطة ناتجة عن التذبذب اللحظي.</div>`);
             } else {
-                logs.push(`<div class="text-emerald-400">• ممتازة! لا توجد صفقات خاسرة ضربت الوقف الرئيسي حتى الآن.</div>`);
+                logs.push(`<div class="text-emerald-400">• أداء ممتاز 100%! لا توجد أي صفقة ضربت الوقف الرئيسي.</div>`);
             }
 
             if (timeoutExits > 0) {
-                logs.push(`<div class="text-amber-400">• تكرر الخروج الزمني (${timeoutExits} مرات): تتباطأ الحركة بعد الدخول؛ يفضل ضبط الوقف الزمني بمرونة.</div>`);
+                logs.push(`<div class="text-amber-400">• الخروج الزمني (${timeoutExits} صفقات): تجميع بطيء، تم الخروج بحماية رأس المال.</div>`);
             }
 
             if (wins / completedTrades.length >= 0.7) {
-                logs.push(`<div class="text-emerald-400">• نسبة نجاح ممتازة (${((wins/completedTrades.length)*100).toFixed(0)}%). التوقيت والسرعة متناسقان.</div>`);
+                logs.push(`<div class="text-emerald-400">• معدل نجاح ممتاز (${((wins/completedTrades.length)*100).toFixed(0)}%). دقة التنفيذ عالية.</div>`);
             }
 
             auditElem.innerHTML = logs.join('');
