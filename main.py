@@ -11,9 +11,9 @@ except ImportError:
     ccxtpro = None
 
 app = FastAPI(
-    title="Binance Adaptive Scalper Backend",
-    description="Microsecond Execution Scalper Engine with Dynamic Lifespan and Pre-Entry Orderbook Analysis",
-    version="11.0.0"
+    title="Binance Scalper Engine Backend",
+    description="Scalper Backend with 12 Top & 30 Assets Support",
+    version="12.0.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -56,9 +56,9 @@ async def get_config():
     return {
         "hasEnvKeys": bool(api_k),
         "apiKeyMasked": f"{api_k[:8]}...{api_k[-6:]}" if api_k else "",
-        "mode": "Adaptive Pre-Entry WebSocket Engine ⚡",
+        "mode": "Scalping Engine v12 ⚡",
         "hasCcxtPro": ccxtpro is not None,
-        "message": "مُعالج الدخول التكيّفي بالميكروثانية مع شريط تحكم الأجل 10 دقائق جاهز للعمل!"
+        "message": "المحرك جاهز ومتوافق مع أفضل 12 رمز وكافة الأسهم والعملات!"
     }
 
 @app.get("/api/account-balance")
@@ -119,7 +119,7 @@ async def execute_binance_order(req: TradeRequest):
         return {
             "status": "success",
             "order_id": order.get('id', 'DEMO-ORDER-101'),
-            "message": f"تم تنفيذ أمر {side.upper()} التكيفي {'(تجريبي)' if req.useDemo else '(حقيقي)'} بنجاح على {ccxt_symbol}!",
+            "message": f"تم تنفيذ أمر {side.upper()} {'(تجريبي)' if req.useDemo else '(حقيقي)'} بنجاح!",
             "details": order
         }
 
@@ -134,35 +134,8 @@ async def execute_binance_order(req: TradeRequest):
             }
         return {
             "status": "error",
-            "message": f"خطأ تنفيذ أمر بينانس: {str(e)}"
+            "message": f"خطأ تنفيذ الأمر: {str(e)}"
         }
-
-@app.get("/api/ws-stream-ticker")
-async def stream_ticker(symbol: str = "BTCUSDT"):
-    if ccxtpro is None:
-        return {"status": "fallback", "message": "ccxt.pro not available, using REST fallback"}
-    
-    formatted_symbol = symbol.replace('USDT', '/USDT')
-    exchange = get_binance_exchange(is_pro=True)
-    
-    try:
-        orderbook = await exchange.watch_order_book(formatted_symbol, limit=5)
-        await exchange.close()
-        
-        bids_vol = sum(b[1] for b in orderbook['bids'])
-        asks_vol = sum(a[1] for a in orderbook['asks'])
-        ratio = bids_vol / asks_vol if asks_vol > 0 else 1.0
-        
-        return {
-            "status": "success",
-            "symbol": symbol,
-            "best_bid": orderbook['bids'][0][0] if orderbook['bids'] else 0,
-            "best_ask": orderbook['asks'][0][0] if orderbook['asks'] else 0,
-            "imbalance_ratio": round(ratio, 2)
-        }
-    except Exception as e:
-        await exchange.close()
-        return {"status": "error", "message": str(e)}
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
