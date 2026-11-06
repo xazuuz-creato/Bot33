@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الحارس - سكالبيينغ بينانس المدمج (عملات + أسهم)</title>
+    <title>منصة الحارس - سكالبيينغ بينانس المدمج (معدّل)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -34,11 +34,11 @@
         <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-400 flex items-center justify-center text-white text-xl shadow-lg shadow-amber-500/20">
-                    <i class="fa-solid fa-chart-line animate-pulse text-slate-950"></i>
+                    <i class="fa-solid fa-shield-halved animate-pulse text-slate-950"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-amber-400 to-emerald-200 bg-clip-text text-transparent">منصة الحارس - المحرك المدمج (بينانس)</h1>
-                    <p class="text-[11px] text-slate-400">تداول تلقائي فائق السرعة عبر تتبع السيولة ودفتر الطلبات المباشر</p>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-amber-400 to-emerald-200 bg-clip-text text-transparent">منصة الحارس - محرك بينانس الآمن 🛡️</h1>
+                    <p class="text-[11px] text-slate-400">نظام السكالبينغ المتقدم (مُعالج الـ Slippage والعمولات والوقف التكيفي)</p>
                 </div>
             </div>
 
@@ -73,7 +73,7 @@
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
 
-        <!-- Asset Scope & Engine Control -->
+        <!-- Asset Scope & Protection Stats -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Asset Scope Picker -->
             <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between">
@@ -87,15 +87,21 @@
                 </div>
             </div>
 
-            <!-- Imbalance Threshold -->
+            <!-- Enhanced Anti-Slippage Rules -->
             <div class="bg-cardBg border border-slate-800 p-4 rounded-2xl shadow-lg flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-slate-400 font-semibold">معيار اندفاع الشراء المدمج:</span>
-                    <span class="text-xs text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">2.5x أضعاف البيع</span>
+                    <span class="text-xs text-slate-400 font-semibold">قواعد الأمان ومنع الفخاخ:</span>
+                    <span class="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">مستقرة 🎯</span>
                 </div>
-                <div class="flex items-center gap-2 bg-darkBg border border-slate-700 rounded-xl px-3 py-2">
-                    <i class="fa-solid fa-bolt text-amber-400 text-sm"></i>
-                    <span class="text-xs text-slate-200 font-medium">الدفتر + السيولة اللحظية تأكيد مزدوج</span>
+                <div class="space-y-1 text-[11px] text-slate-300">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">الوقف المرن:</span>
+                        <span class="font-mono text-rose-400 font-bold">-0.55% (تغطية الضوضاء)</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">نقطة التعادل الصافية:</span>
+                        <span class="font-mono text-emerald-400 font-bold">+0.28% (تغطية الرسوم)</span>
+                    </div>
                 </div>
             </div>
 
@@ -129,9 +135,9 @@
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold flex items-center gap-2">
                     <i class="fa-solid fa-layer-group text-amber-400 animate-pulse"></i>
-                    تتبع السيولة ودفتر الطلبات المباشر
+                    رادار السيولة وتأكيد الدخول الآمن
                 </h3>
-                <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">استجابة فائقة (1000ms)</span>
+                <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">تحديث متوازي سريع</span>
             </div>
 
             <div class="overflow-x-auto">
@@ -143,7 +149,7 @@
                             <th class="py-2.5 px-3">حجم الشراء (Bids)</th>
                             <th class="py-2.5 px-3">حجم البيع (Asks)</th>
                             <th class="py-2.5 px-3">نسبة تفوق الشراء</th>
-                            <th class="py-2.5 px-3">الحالة والترصد</th>
+                            <th class="py-2.5 px-3">حالة الفلترة والترصد</th>
                             <th class="py-2.5 px-3 text-center">الشارت</th>
                         </tr>
                     </thead>
@@ -198,14 +204,13 @@
                 <button onclick="clearLogs()" class="text-[10px] text-slate-500 hover:text-slate-300 transition">مسح السجل</button>
             </div>
             <div id="terminalLog" class="bg-darkBg font-mono text-[11px] p-3 rounded-xl h-28 overflow-y-auto space-y-1 text-slate-300 border border-slate-800">
-                <div class="text-slate-500">[Merged Scalper Engine] محرك التداول المدمج جاهز للعمل...</div>
+                <div class="text-slate-500">[Protected Scalper Engine] تم تحميل قواعد منع الفخاخ والوقف المرن (-0.55%)...</div>
             </div>
         </div>
 
     </main>
 
     <script>
-        // القوائم المدمجة
         const topAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'AAPLUSDT', 'NVDAUSDT', 'TSLAUSDT'];
         const allAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT', 'AAPLUSDT', 'TSLAUSDT', 'NVDAUSDT', 'MSFTUSDT', 'AMZNUSDT', 'GOOGLUSDT'];
         
@@ -216,9 +221,10 @@
         let maxConcurrentTrades = 2;
         let activeTrades = [];
         let orderbookData = {};
+        let priceHistory = {};
         let currentChartSymbol = 'BTCUSDT';
 
-        const BINANCE_FEE_PCT = 0.15; // 0.075% دخول + 0.075% خروج
+        const BINANCE_FEE_PCT = 0.15; // رسوم بينانس الافتراضية للمجموع
 
         window.onload = function() {
             setMode(true);
@@ -288,7 +294,7 @@
         async function trackOrderbookFlow() {
             const now = Date.now();
 
-            // 1. تحديث ومتابعة الصفقات النشطة
+            // 1. متابعة الصفقات المفتوحة مع الأمان المحدث
             for (let i = activeTrades.length - 1; i >= 0; i--) {
                 const trade = activeTrades[i];
                 try {
@@ -304,17 +310,17 @@
 
                         const elapsedSec = Math.round((now - trade.entryTime) / 1000);
 
-                        // رفع الوقف وتأمين الأرباح تلقائياً عند وصول الربح لـ +0.18%
-                        if (pnlPct >= 0.18 && !trade.isBE) {
+                        // 🎯 رفع الوقف للتعادل الآمن فقط عند ربح +0.28% (تغطية الرسوم + الانزلاق)
+                        if (pnlPct >= 0.28 && !trade.isBE) {
                             trade.isBE = true;
-                            trade.slPrice = trade.entryPrice * 1.0015;
-                            logMessage(`🛡️ [تأمين كامل] ${trade.symbol}: رفع الوقف لسعر الدخول + الرسوم.`, 'info');
+                            trade.slPrice = trade.entryPrice * 1.0015; // إغلاق بربح صافٍ يغطي الرسوم
+                            logMessage(`🛡️ [تأمين حقيقي] ${trade.symbol}: تم نقل الوقف فوق سعر الدخول والعمولات.`, 'success');
                         }
 
-                        if (pnlPct >= 0.35) {
-                            closeTrade(i, pnlPct, "🎯 ربح مضمون (+0.35%)", currentPrice);
+                        if (pnlPct >= 0.50) {
+                            closeTrade(i, pnlPct, "🎯 هدف متقدم (+0.50%)", currentPrice);
                         } else if (currentPrice <= trade.slPrice) {
-                            closeTrade(i, pnlPct, "🛑 قطع خسارة حاسم", currentPrice);
+                            closeTrade(i, pnlPct, trade.isBE ? "🛡️ خروج بحماية الأرباح" : "🛑 قطع خسارة حاسم (-0.55%)", currentPrice);
                         } else if (elapsedSec >= 180) {
                             closeTrade(i, pnlPct, "⏱️ خروج زمني (3 دقائق)", currentPrice);
                         }
@@ -323,7 +329,7 @@
             }
             renderActiveTrades();
 
-            // 2. قراءة دفتر الطلبات السريعة
+            // 2. ترصد الفرص مع فلتر الـ Pullback
             const fetches = activePairs.map(async (sym) => {
                 if (activeTrades.some(t => t.symbol === sym)) return;
 
@@ -340,15 +346,24 @@
 
                         const imbalanceRatio = totalAsksVol > 0 ? (totalBidsVol / totalAsksVol) : 1.0;
 
+                        if (!priceHistory[sym]) priceHistory[sym] = [];
+                        priceHistory[sym].push(currentPrice);
+                        if (priceHistory[sym].length > 5) priceHistory[sym].shift();
+
+                        // فحص استقرار السعر وعدم الشراء في ذروة الارتفاع المتطرفة
+                        const isRetesting = priceHistory[sym].length >= 3 && 
+                                           currentPrice <= priceHistory[sym][priceHistory[sym].length - 2];
+
                         orderbookData[sym] = {
                             price: currentPrice,
                             bidsVol: totalBidsVol.toFixed(2),
                             asksVol: totalAsksVol.toFixed(2),
                             ratio: imbalanceRatio.toFixed(2),
-                            status: imbalanceRatio >= 2.5 ? "⚡ اندفاع سيولة!" : "ترصد لحظي 🎯"
+                            status: (imbalanceRatio >= 2.5) ? (isRetesting ? "🎯 تجميع وتأكيد!" : "⚡ اندفاع سيولة") : "ترصد لحظي 🔍"
                         };
 
-                        if (imbalanceRatio >= 2.5 && activeTrades.length < maxConcurrentTrades) {
+                        // الشراء فقط عند توفر السيولة واستقرار السعر لتجنب شراء القمم
+                        if (imbalanceRatio >= 2.5 && isRetesting && activeTrades.length < maxConcurrentTrades) {
                             executeBuyOrder(sym, currentPrice, imbalanceRatio);
                         }
                     }
@@ -360,8 +375,8 @@
         }
 
         async function executeBuyOrder(symbol, price, ratio) {
-            orderbookData[symbol].status = "🚀 تنفيذ الشراء!";
-            logMessage(`💥 [شرارة دخول] ${symbol} (تفوق الشراء ${ratio}x) - جاري إرسال الأمر...`, 'warn');
+            orderbookData[symbol].status = "🚀 دخول مؤمّن!";
+            logMessage(`💥 [شرارة دخول مؤكدة] ${symbol} (تفوق الشراء ${ratio}x مع استقرار سعري) - جاري التنفيذ...`, 'warn');
 
             try {
                 const res = await fetch('/api/execute-order', {
@@ -387,7 +402,7 @@
                         netProfitUsdt: 0.0,
                         entryTime: Date.now(),
                         isBE: false,
-                        slPrice: price * 0.9975
+                        slPrice: price * 0.9945 // 🛡️ وقف خسارة واسع وآمن عند -0.55%
                     });
                 } else {
                     logMessage(`❌ [رفض أمر الشراء]: ${orderData.message}`, 'danger');
@@ -480,7 +495,7 @@
             document.getElementById('activeCountBadge').innerText = `${activeTrades.length} صفقات`;
 
             if (activeTrades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك المدمج يراقب دفاتر الطلبات.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك الآمن يراقب دفاتر الطلبات.</td></tr>`;
                 return;
             }
 
@@ -494,7 +509,7 @@
                         <td class="py-2.5 px-3 font-mono text-amber-400">$${t.budget}</td>
                         <td class="py-2.5 px-3 font-mono font-bold ${isPos ? 'text-emerald-400' : 'text-rose-400'}">${isPos ? '+' : ''}${t.pnlPct.toFixed(2)}%</td>
                         <td class="py-2.5 px-3 font-mono font-bold ${t.netProfitUsdt >= 0 ? 'text-emerald-400' : 'text-rose-400'}">$${t.netProfitUsdt.toFixed(3)}</td>
-                        <td class="py-2.5 px-3 text-[10px] font-bold ${t.isBE ? 'text-emerald-400' : 'text-amber-400'}">${t.isBE ? 'محمي (مؤمن)' : 'وقف عادي (-0.25%)'}</td>
+                        <td class="py-2.5 px-3 text-[10px] font-bold ${t.isBE ? 'text-emerald-400' : 'text-slate-400'}">${t.isBE ? 'مؤمن فوق الرسوم (+0.15%)' : 'وقف واسع (-0.55%)'}</td>
                     </tr>
                 `;
             }).join('');
