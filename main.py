@@ -11,14 +11,13 @@ except ImportError:
     ccxtpro = None
 
 app = FastAPI(
-    title="Binance Fast Scalper Backend with Instant WebSocket",
-    description="Microsecond Execution Scalper Engine using Binance WebSocket Streams",
-    version="10.5.0"
+    title="Binance Adaptive Scalper Backend",
+    description="Microsecond Execution Scalper Engine with Dynamic Lifespan and Pre-Entry Orderbook Analysis",
+    version="11.0.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# مفاتيح Binance
 DEFAULT_BINANCE_API_KEY = os.environ.get("BINANCE_API_KEY", "XivZSVpFnN9o7bPuQYOud41fuuAW4HotktcPk47GuGV1qXSPQMOldUsPeMzruSWz")
 DEFAULT_BINANCE_SECRET_KEY = os.environ.get("BINANCE_SECRET_KEY", "hlecSSicPZZQsBoKNkpfQiREigKSHrA74pFcG6PYAXTbwHRvbNNRI1mBMGOi1iQ")
 
@@ -26,7 +25,7 @@ class TradeRequest(BaseModel):
     apiKey: str = ""
     secretKey: str = ""
     symbol: str
-    action: str  # BUY or SELL
+    action: str
     amountUsdt: float = 100.0
     useDemo: bool = True
 
@@ -57,9 +56,9 @@ async def get_config():
     return {
         "hasEnvKeys": bool(api_k),
         "apiKeyMasked": f"{api_k[:8]}...{api_k[-6:]}" if api_k else "",
-        "mode": "Binance High-Frequency WebSocket Engine ⚡",
+        "mode": "Adaptive Pre-Entry WebSocket Engine ⚡",
         "hasCcxtPro": ccxtpro is not None,
-        "message": "مُعالج الدخول بالميكروثانية عبر WebSocket جاهز للعمل!"
+        "message": "مُعالج الدخول التكيّفي بالميكروثانية مع شريط تحكم الأجل 10 دقائق جاهز للعمل!"
     }
 
 @app.get("/api/account-balance")
@@ -95,9 +94,6 @@ async def get_binance_balance(demo: bool = True):
 
 @app.post("/api/execute-order")
 async def execute_binance_order(req: TradeRequest):
-    """
-    تنفيذ فوري خالي من التأخير اللحظي
-    """
     exchange = get_binance_exchange(req.apiKey, req.secretKey, use_demo=req.useDemo)
     try:
         formatted_symbol = req.symbol.replace('-', '').replace('/', '')
@@ -123,7 +119,7 @@ async def execute_binance_order(req: TradeRequest):
         return {
             "status": "success",
             "order_id": order.get('id', 'DEMO-ORDER-101'),
-            "message": f"تم تنفيذ أمر {side.upper()} الفوري {'(تجريبي)' if req.useDemo else '(حقيقي)'} بنجاح على {ccxt_symbol}!",
+            "message": f"تم تنفيذ أمر {side.upper()} التكيفي {'(تجريبي)' if req.useDemo else '(حقيقي)'} بنجاح على {ccxt_symbol}!",
             "details": order
         }
 
@@ -143,9 +139,6 @@ async def execute_binance_order(req: TradeRequest):
 
 @app.get("/api/ws-stream-ticker")
 async def stream_ticker(symbol: str = "BTCUSDT"):
-    """
-    بث فوري مباشر للميكروثانية عبر WebSocket
-    """
     if ccxtpro is None:
         return {"status": "fallback", "message": "ccxt.pro not available, using REST fallback"}
     
