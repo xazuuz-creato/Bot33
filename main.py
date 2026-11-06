@@ -1,246 +1,491 @@
-import os
-import time
-import uuid
-import sqlite3
+"""Rapid Guard Scalper: server-authoritative, demo-first Binance Spot monitor.
+
+LIVE order submission is intentionally NOT implemented in this release. This avoids
+pretending that local persistence alone represents actual Binance executions.
+"""
+from __future__ import annotations
+
 import asyncio
-from typing import Dict, Any, Optional
+import math
+import os
+import secrets
+import sqlite3
+import time
+from collections import defaultdict, deque
+from contextlib import asynccontextmanager
+from pathlib import Path
+import httpx
+from typing import Literal, Optional
+
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
-import ccxt.async_support as ccxt
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 
-try:
-    import ccxt.pro as ccxtpro
-except ImportError:
-    ccxtpro = None
+BASE = Path(__file__).resolve().parent
+DB_PATH = Path(os.getenv("DATABASE_PATH", str(BASE / "scalper.sqlite3")))
+DEMO_START_BALANCE = float(os.getenv("DEMO_START_BALANCE", "10000"))
+# These are CONFIGURABLE estimates, not a claim of the actual user's Binance commission.
+FEE_RATE = float(os.getenv("DEMO_FEE_RATE", "0.001"))  # 0.10% per side
+SLIPPAGE_RATE = float(os.getenv("DEMO_SLIPPAGE_RATE", "0.0002"))  # 0.02% per side
+MIN_NET_TARGET_PCT = float(os.getenv("MIN_NET_TARGET_PCT", "0.10"))
+TARGET_GROSS_PCT = float(os.getenv("TARGET_GROSS_PCT", "0.45"))
+STOP_GROSS_PCT = float(os.getenv("STOP_GROSS_PCT", "0.30"))
+MAX_SPREAD_PCT = float(os.getenv("MAX_SPREAD_PCT", "0.05"))
+MAX_POSITIONS = int(os.getenv("MAX_POSITIONS", "3"))
+MAX_DAILY_LOSS = float(os.getenv("MAX_DAILY_LOSS_USDT", "25"))
+MIN_BUY_RATIO = float(os.getenv("MIN_BUY_RATIO", "0.60"))
+MIN_IMBALANCE = float(os.getenv("MIN_IMBALANCE", "1.5"))
+MIN_SAMPLES = int(os.getenv("MIN_BOOK_SAMPLES", "6"))
+MAX_HOLD = int(os.getenv("DEFAULT_MAX_HOLD_SECONDS", "180"))
+TOKEN_LIFETIME = 3.0
+MARKET_MAX_AGE = 2.5
+TRADE_MAX_AGE = 5.0
+SUPPORTED_CANDIDATES = [
+    "BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "BNBUSDT", "DOGEUSDT",
+    "ADAUSDT", "LINKUSDT", "AVAXUSDT", "LTCUSDT", "DOTUSDT", "TRXUSDT",
+    "SUIUSDT", "NEARUSDT", "APTUSDT", "ATOMUSDT", "UNIUSDT", "ETCUSDT",
+    "BCHUSDT", "XLMUSDT", "FILUSDT", "ARBUSDT", "OPUSDT", "AAVEUSDT",
+    "INJUSDT", "PEPEUSDT", "SHIBUSDT", "ICPUSDT", "ALGOUSDT", "HBARUSDT",
+]
 
-app = FastAPI(
-    title="Institutional Micro-Momentum Scalping Engine",
-    description="Micro-Momentum V2 Engine with signalToken, OFI & Persistence",
-    version="2.0.0"
-)
+if not 0 <= FEE_RATE < 0.02 or not 0 <= SLIPPAGE_RATE < 0.02:
+    raise RuntimeError("Invalid demo fee/slippage environment configuration")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "positions.db")
-ALLOW_LIVE_TRADING = os.environ.get("ALLOW_LIVE_TRADING", "false").lower() == "true"
+books: dict[str, dict] = {}
+book_hist: dict[str, deque] = defaultdict(lambda: deque(maxlen=40))
+trades: dict[str, deque] = defaultdict(lambda: deque(maxlen=500))
+tokens: dict[str, dict] = {}
+verified_symbols: set[str] = set()
+symbols_cache_time = 0.0
+state_lock = asyncio.Lock()
 
-# ---- Initialize DB Persistence ----
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS positions (
-            symbol TEXT PRIMARY KEY,
-            entry_price REAL,
-            amount REAL,
-            usdt_value REAL,
-            peak_price REAL,
-            entry_time REAL,
-            stop_loss REAL,
-            take_profit REAL,
-            max_duration INTEGER
-        )
-    ''')
-    conn.commit()
-    conn.close()
 
-init_db()
+def connect():
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-# ---- State Storage ----
-valid_tokens: Dict[str, float] = {}  # token -> expiration timestamp
-latest_market_data: Dict[str, Dict[str, Any]] = {}
 
-class MarketBookData(BaseModel):
+def initialize_db():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with connect() as con:
+        con.execute("PRAGMA journal_mode=WAL")
+        con.execute("""CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value REAL NOT NULL)""")
+        con.execute("INSERT OR IGNORE INTO meta(name,value) VALUES ('cash',?)", (DEMO_START_BALANCE,))
+        con.execute("""CREATE TABLE IF NOT EXISTS positions (
+            symbol TEXT PRIMARY KEY, entry_price REAL NOT NULL, quantity REAL NOT NULL,
+            entry_cost REAL NOT NULL, entry_fee REAL NOT NULL, entry_time REAL NOT NULL,
+            peak REAL NOT NULL, stop_price REAL NOT NULL, target_price REAL NOT NULL,
+            max_duration INTEGER NOT NULL
+        )""")
+        con.execute("""CREATE TABLE IF NOT EXISTS closed_trades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, symbol TEXT NOT NULL,
+            entry_price REAL NOT NULL, exit_price REAL NOT NULL, quantity REAL NOT NULL,
+            gross_pnl REAL NOT NULL, entry_fee REAL NOT NULL, exit_fee REAL NOT NULL,
+            net_pnl REAL NOT NULL, opened_at REAL NOT NULL, closed_at REAL NOT NULL,
+            reason TEXT NOT NULL
+        )""")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    initialize_db()
+    yield
+
+
+app = FastAPI(title="Rapid Guard: Demo-first Micro Momentum", version="3.0.0", lifespan=lifespan)
+
+
+class BookRequest(BaseModel):
     symbol: str
-    bids: list
-    asks: list
+    bids: list[list]
+    asks: list[list]
     timestamp: Optional[int] = None
 
-class EvaluateEntryRequest(BaseModel):
+
+class TradeRequest(BaseModel):
+    symbol: str
+    price: float = Field(gt=0)
+    quantity: float = Field(gt=0)
+    isBuyerMaker: bool
+    timestamp: Optional[int] = None
+
+
+class TradeBatch(BaseModel):
+    trades: list[TradeRequest] = Field(min_length=1, max_length=200)
+
+
+class SymbolRequest(BaseModel):
     symbol: str
 
-class ExecuteOrderRequest(BaseModel):
+
+class OrderRequest(BaseModel):
     symbol: str
-    action: str  # BUY or SELL
-    amountUsdt: float = 100.0
+    action: Literal["BUY", "SELL"]
+    amountUsdt: float = Field(default=100, ge=10, le=100000)
     signalToken: Optional[str] = None
     useDemo: bool = True
+    maxHoldSeconds: int = Field(default=MAX_HOLD, ge=30, le=600)
+    reason: Optional[str] = None
 
-class EvaluateExitRequest(BaseModel):
+
+class ExitRequest(BaseModel):
     symbol: str
-    currentPrice: float
 
-# Helper DB Functions
-def save_position_db(pos: dict):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT OR REPLACE INTO positions (symbol, entry_price, amount, usdt_value, peak_price, entry_time, stop_loss, take_profit, max_duration)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (pos['symbol'], pos['entryPrice'], pos['amount'], pos['usdtValue'], pos['peakPrice'], pos['entryTime'], pos['stopLoss'], pos['takeProfit'], pos['maxDuration']))
-    conn.commit()
-    conn.close()
 
-def delete_position_db(symbol: str):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM positions WHERE symbol = ?', (symbol,))
-    conn.commit()
-    conn.close()
+def normalized(symbol: str) -> str:
+    symbol = symbol.upper().strip().replace("/", "")
+    if symbol not in SUPPORTED_CANDIDATES:
+        raise HTTPException(400, "الرمز خارج نطاق العملات الرقمية المسموحة")
+    if verified_symbols and symbol not in verified_symbols:
+        raise HTTPException(400, "الزوج غير نشط أو غير مدعوم في Binance Spot")
+    return symbol
 
-def get_position_db(symbol: str) -> Optional[dict]:
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('SELECT symbol, entry_price, amount, usdt_value, peak_price, entry_time, stop_loss, take_profit, max_duration FROM positions WHERE symbol = ?', (symbol,))
-    row = cursor.fetchone()
-    conn.close()
-    if row:
-        return {
-            "symbol": row[0], "entryPrice": row[1], "amount": row[2],
-            "usdtValue": row[3], "peakPrice": row[4], "entryTime": row[5],
-            "stopLoss": row[6], "takeProfit": row[7], "maxDuration": row[8]
-        }
-    return None
+
+def get_position(con, symbol):
+    row = con.execute("SELECT * FROM positions WHERE symbol=?", (symbol,)).fetchone()
+    return dict(row) if row else None
+
+
+def state():
+    with connect() as con:
+        cash = float(con.execute("SELECT value FROM meta WHERE name='cash'").fetchone()[0])
+        positions = [dict(r) for r in con.execute("SELECT * FROM positions ORDER BY entry_time DESC")]
+        history = [dict(r) for r in con.execute("SELECT * FROM closed_trades ORDER BY id DESC LIMIT 150")]
+    value = cash + sum(p["quantity"] * books.get(p["symbol"], {}).get("bid", p["entry_price"]) for p in positions)
+    return {"cashUsdt": cash, "equityUsdt": value, "positions": positions, "history": history}
+
+
+def day_loss(con, now):
+    # Rolling UTC calendar day, net realised PnL. Block only when net loss threshold is reached.
+    day = int(now // 86400) * 86400
+    total = con.execute("SELECT COALESCE(SUM(net_pnl),0) FROM closed_trades WHERE closed_at>=?", (day,)).fetchone()[0]
+    return max(0.0, -float(total))
+
+
+def features(symbol):
+    now = time.time()
+    b = books.get(symbol)
+    hist = [x for x in book_hist[symbol] if now - x["t"] <= 8]
+    recent = [t for t in trades[symbol] if now - t["t"] < 5]
+    if not b or now - b["t"] > MARKET_MAX_AGE or len(hist) < MIN_SAMPLES:
+        return None, ["دفتر الطلبات قديم أو العينات غير كافية"]
+    if not recent or now - max(t["t"] for t in recent) > TRADE_MAX_AGE:
+        return None, ["لا توجد صفقات منفذة حديثة"]
+    buy = sum(t["qty"] * t["price"] for t in recent if not t["isBuyerMaker"])
+    sell = sum(t["qty"] * t["price"] for t in recent if t["isBuyerMaker"])
+    total = buy + sell
+    if total <= 0:
+        return None, ["حجم التداول المنفذ غير كافٍ"]
+    buy_ratio = buy / total
+    spread_pct = (b["ask"] - b["bid"]) / b["ask"] * 100
+    window = hist[-min(15, len(hist)):]
+    velocity = (window[-1]["mid"] / window[0]["mid"] - 1) * 100 if window[0]["mid"] else 0
+    durations = max(window[-1]["t"] - window[0]["t"], 0.01)
+    velocity_per_sec = velocity / durations
+    halfway = len(window) // 2
+    first = window[0]
+    middle = window[halfway]
+    last = window[-1]
+    v1 = (middle["mid"] / first["mid"] - 1) / max(middle["t"] - first["t"], 0.01)
+    v2 = (last["mid"] / middle["mid"] - 1) / max(last["t"] - middle["t"], 0.01)
+    acceleration = (v2 - v1) * 100
+    sustained = sum(h["imbalance"] >= MIN_IMBALANCE for h in window) / len(window)
+    # The ratio below is order-book depth imbalance, NOT formal event-level OFI.
+    out = {
+        "imbalanceRatio": round(b["imbalance"], 3), "sustainedImbalance": round(sustained, 3),
+        "buyRatio": round(buy_ratio, 3), "spreadPct": round(spread_pct, 4),
+        "velocityPctPerSec": round(velocity_per_sec, 5),
+        "accelerationPctPerSec2": round(acceleration, 5),
+        "tradeNotional5s": round(total, 2), "bestBid": b["bid"], "bestAsk": b["ask"],
+    }
+    return out, []
+
+
+def cost_metrics(f):
+    spread = f["spreadPct"]
+    fees = (2 * FEE_RATE) * 100
+    slippage = (2 * SLIPPAGE_RATE) * 100
+    total_cost_pct = fees + slippage + spread
+    return {
+        "roundTripFeePctEstimate": round(fees, 4),
+        "roundTripSlippagePctEstimate": round(slippage, 4),
+        "spreadPct": round(spread, 4),
+        "estimatedTotalFrictionPct": round(total_cost_pct, 4),
+        "estimatedNetAtTargetPct": round(TARGET_GROSS_PCT - total_cost_pct, 4),
+    }
+
+
+@app.get("/api/config")
+def config():
+    return {"liveEnabled": False, "executionMode": "DEMO_ONLY",
+            "feeRatePerSide": FEE_RATE, "slippageRatePerSide": SLIPPAGE_RATE,
+            "grossTargetPct": TARGET_GROSS_PCT, "minNetTargetPct": MIN_NET_TARGET_PCT,
+            "maxPositions": MAX_POSITIONS, "maxDailyLossUsdt": MAX_DAILY_LOSS,
+            "symbols": SUPPORTED_CANDIDATES,
+            "note": "قائمة مرشحة وليست توثيقاً لحالة كل زوج؛ يجب التحقق من Binance exchangeInfo قبل الاشتراك."}
+
+
+@app.get("/api/symbols")
+async def available_symbols():
+    """Fail closed if Binance exchangeInfo cannot be verified."""
+    global symbols_cache_time, verified_symbols
+    if verified_symbols and time.time() - symbols_cache_time < 1800:
+        return {"symbols": sorted(verified_symbols), "verified": True}
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            res = await client.get("https://api.binance.com/api/v3/exchangeInfo")
+            res.raise_for_status()
+            info = res.json()
+        eligible = {x["symbol"] for x in info.get("symbols", [])
+                    if x.get("status") == "TRADING" and x.get("isSpotTradingAllowed", False)
+                    and x.get("symbol") in SUPPORTED_CANDIDATES}
+        if not eligible:
+            raise ValueError("no eligible spot pairs")
+        verified_symbols = eligible
+        symbols_cache_time = time.time()
+        return {"symbols": sorted(eligible), "verified": True}
+    except (httpx.HTTPError, ValueError, KeyError) as exc:
+        raise HTTPException(503, "تعذر التحقق من أزواج Binance Spot؛ لن يبدأ مسح الأصول") from exc
+
 
 @app.post("/api/market-data/book")
-async def receive_market_book(data: MarketBookData):
-    if not data.bids or not data.asks:
-        return {"status": "ignored"}
-    
-    bids_vol = sum(float(b[1]) for b in data.bids[:5])
-    asks_vol = sum(float(a[1]) for a in data.asks[:5])
-    imbalance = bids_vol / asks_vol if asks_vol > 0 else 1.0
-
-    latest_market_data[data.symbol] = {
-        "bestBid": float(data.bids[0][0]),
-        "bestAsk": float(data.asks[0][0]),
-        "imbalanceRatio": imbalance,
-        "spread": float(data.asks[0][0]) - float(data.bids[0][0]),
-        "timestamp": time.time()
-    }
+async def receive_book(req: BookRequest):
+    symbol = normalized(req.symbol)
+    try:
+        bids = sorted([(float(x[0]), float(x[1])) for x in req.bids[:5]], reverse=True)
+        asks = sorted([(float(x[0]), float(x[1])) for x in req.asks[:5]])
+    except (ValueError, TypeError, IndexError) as exc:
+        raise HTTPException(422, "بيانات دفتر الطلبات غير صالحة") from exc
+    if not bids or not asks or any(not math.isfinite(x) or x <= 0 for pair in bids + asks for x in pair):
+        raise HTTPException(422, "أسعار أو كميات غير صالحة")
+    if bids[0][0] >= asks[0][0]:
+        raise HTTPException(422, "دفتر الطلبات متقاطع أو غير صالح")
+    bv = sum(p*q for p, q in bids)
+    av = sum(p*q for p, q in asks)
+    ratio = min(bv / av, 100) if av > 0 else 0
+    now = time.time()
+    mid = (bids[0][0] + asks[0][0]) / 2
+    books[symbol] = {"bid": bids[0][0], "ask": asks[0][0], "imbalance": ratio, "t": now}
+    book_hist[symbol].append({"t": now, "mid": mid, "imbalance": ratio})
     return {"status": "ok"}
 
+
+@app.post("/api/market-data/trade")
+async def receive_trade(req: TradeRequest):
+    symbol = normalized(req.symbol)
+    if not math.isfinite(req.price) or not math.isfinite(req.quantity):
+        raise HTTPException(422, "قيم غير صالحة")
+    trades[symbol].append({"price": req.price, "qty": req.quantity,
+                           "isBuyerMaker": req.isBuyerMaker, "t": time.time()})
+    return {"status": "ok"}
+
+
+@app.post("/api/market-data/trades")
+async def receive_trades(req: TradeBatch):
+    now = time.time()
+    for t in req.trades:
+        symbol = normalized(t.symbol)
+        if not math.isfinite(t.price) or not math.isfinite(t.quantity):
+            raise HTTPException(422, "قيم صفقات غير صالحة")
+        trades[symbol].append({"price": t.price, "qty": t.quantity,
+                               "isBuyerMaker": t.isBuyerMaker, "t": now})
+    return {"status": "ok", "count": len(req.trades)}
+
+
 @app.post("/api/evaluate-entry")
-async def evaluate_entry(req: EvaluateEntryRequest):
-    m_data = latest_market_data.get(req.symbol)
-    if not m_data or (time.time() - m_data["timestamp"] > 3.0):
-        return {"enter": False, "score": 0, "reasons": ["بيانات السوق غير متوفرة أو قديمة"]}
+async def evaluate_entry(req: SymbolRequest):
+    symbol = normalized(req.symbol)
+    f, reasons = features(symbol)
+    if f is None:
+        return {"enter": False, "score": 0, "reasons": reasons}
+    m = cost_metrics(f)
+    checks = [
+        (f["spreadPct"] <= MAX_SPREAD_PCT, "السبريد مرتفع"),
+        (f["imbalanceRatio"] >= MIN_IMBALANCE, "عدم توازن دفتر الطلبات ضعيف"),
+        (f["sustainedImbalance"] >= 0.7, "السيولة غير مستقرة"),
+        (f["buyRatio"] >= MIN_BUY_RATIO, "ضغط الشراء المنفذ غير كافٍ"),
+        (f["velocityPctPerSec"] > 0, "السعر لا يرتفع فعلياً"),
+        (f["accelerationPctPerSec2"] >= -0.002, "الزخم يتباطأ بسرعة"),
+        (m["estimatedNetAtTargetPct"] >= MIN_NET_TARGET_PCT, "الهدف لا يغطي تكاليف التنفيذ بهامش كافٍ"),
+    ]
+    reasons = [reason for passed, reason in checks if not passed]
+    async with state_lock:
+        with connect() as con:
+            if get_position(con, symbol):
+                reasons.append("المركز مفتوح بالفعل")
+            if con.execute("SELECT COUNT(*) FROM positions").fetchone()[0] >= MAX_POSITIONS:
+                reasons.append("تم بلوغ الحد الأقصى للمراكز")
+            if day_loss(con, time.time()) >= MAX_DAILY_LOSS:
+                reasons.append("تم بلوغ حد الخسارة اليومي")
+    score = round(sum(ok for ok, _ in checks) / len(checks) * 100)
+    response = {"enter": not reasons, "score": score, "reasons": reasons or ["استوفت الإشارة شروط الفلترة"],
+                "features": f, "costEstimate": m}
+    if not reasons:
+        token = secrets.token_urlsafe(24)
+        tokens[token] = {"symbol": symbol, "expiry": time.time() + TOKEN_LIFETIME,
+                         "ask": f["bestAsk"]}
+        response["signalToken"] = token
+    if len(tokens) > 3000:
+        now = time.time()
+        for tok, val in list(tokens.items()):
+            if val["expiry"] < now:
+                tokens.pop(tok, None)
+    return response
 
-    if get_position_db(req.symbol):
-        return {"enter": False, "score": 0, "reasons": ["توجد صفقة مفتوحة بالفعل لهذا الرمز"]}
 
-    imbalance = m_data["imbalanceRatio"]
-    spread_pct = (m_data["spread"] / m_data["bestAsk"]) * 100
+def current_book(symbol):
+    b = books.get(symbol)
+    if not b or time.time() - b["t"] > MARKET_MAX_AGE:
+        raise HTTPException(409, "بيانات السوق غير حديثة؛ لا يمكن التنفيذ")
+    return b
 
-    # تقييم الشروط المؤسسية V2
-    if spread_pct > 0.08:
-        return {"enter": False, "score": 40, "reasons": [f"السبريد مرتفع جداً ({spread_pct:.3f}%)"]}
-
-    if imbalance >= 3.0:
-        # إصدار signalToken بصلاحية 1.5 ثانية فقط لتقليل الانزلاق
-        token = f"ST-{uuid.uuid4().hex[:12]}"
-        valid_tokens[token] = time.time() + 1.5
-        return {
-            "enter": True,
-            "score": 92,
-            "reasons": [f"تدفق سيولة ممتاز (Imbalance: {imbalance:.2f}x)"],
-            "signalToken": token
-        }
-
-    return {"enter": False, "score": int(imbalance * 20), "reasons": ["اندفاع السيولة غير كافٍ"]}
 
 @app.post("/api/execute-order")
-async def execute_order(req: ExecuteOrderRequest):
-    now = time.time()
-    
-    if req.action.upper() == "BUY":
-        if not req.signalToken or req.signalToken not in valid_tokens:
-            raise HTTPException(status_code=400, detail="توكين الإشارة مفقود أو غير صالح")
-        
-        exp_time = valid_tokens.pop(req.signalToken)
-        if now > exp_time:
-            raise HTTPException(status_code=400, detail="انتهت صلاحية signalToken (تجاوز 1.5 ثانية)")
+async def execute_order(req: OrderRequest):
+    if not req.useDemo:
+        raise HTTPException(403, "التداول الحقيقي غير مفعّل في هذه النسخة؛ لا توجد أوامر Live")
+    symbol = normalized(req.symbol)
+    async with state_lock:
+        now = time.time()
+        with connect() as con:
+            if req.action == "BUY":
+                token = tokens.pop(req.signalToken, None) if req.signalToken else None
+                if not token or token["symbol"] != symbol or now > token["expiry"]:
+                    raise HTTPException(400, "رمز الإشارة غير صالح أو منتهي الصلاحية")
+                b = current_book(symbol)
+                if abs(b["ask"] / token["ask"] - 1) > 0.001:
+                    raise HTTPException(409, "السعر تغير كثيراً بعد إصدار الإشارة")
+                # Recheck affordability/market data before executing (avoid stale tokens).
+                f, _ = features(symbol)
+                if not f or f["buyRatio"] < MIN_BUY_RATIO or f["spreadPct"] > MAX_SPREAD_PCT:
+                    raise HTTPException(409, "الإشارة لم تعد مستوفية للشروط")
+                if get_position(con, symbol):
+                    raise HTTPException(409, "هناك مركز مفتوح بالفعل")
+                if con.execute("SELECT COUNT(*) FROM positions").fetchone()[0] >= MAX_POSITIONS:
+                    raise HTTPException(409, "تجاوز الحد الأقصى للمراكز")
+                if day_loss(con, now) >= MAX_DAILY_LOSS:
+                    raise HTTPException(409, "حد الخسارة اليومي")
+                cash = float(con.execute("SELECT value FROM meta WHERE name='cash'").fetchone()[0])
+                if cash + 1e-7 < req.amountUsdt:
+                    raise HTTPException(409, "رصيد تجريبي غير كافٍ")
+                # Budget includes entry fee. Demo models adverse ask slippage.
+                fill = b["ask"] * (1 + SLIPPAGE_RATE)
+                order_notional = req.amountUsdt / (1 + FEE_RATE)
+                entry_fee = order_notional * FEE_RATE
+                qty = order_notional / fill
+                stop = fill * (1 - STOP_GROSS_PCT / 100)
+                target = fill * (1 + TARGET_GROSS_PCT / 100)
+                con.execute("UPDATE meta SET value=value-? WHERE name='cash'", (req.amountUsdt,))
+                con.execute("""INSERT INTO positions(symbol,entry_price,quantity,entry_cost,entry_fee,entry_time,peak,stop_price,target_price,max_duration)
+                               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                            (symbol, fill, qty, order_notional, entry_fee, now, fill, stop, target, req.maxHoldSeconds))
+                position = get_position(con, symbol)
+                return {"status": "success", "mode": "DEMO", "action": "BUY", "position": position,
+                        "fillPrice": fill, "feeUsdt": entry_fee}
+            else:
+                pos = get_position(con, symbol)
+                if not pos:
+                    raise HTTPException(404, "لا يوجد مركز مفتوح")
+                b = current_book(symbol)
+                fill = b["bid"] * (1 - SLIPPAGE_RATE)
+                proceeds = pos["quantity"] * fill
+                exit_fee = proceeds * FEE_RATE
+                net_cash = proceeds - exit_fee
+                gross_pnl = proceeds - pos["entry_cost"]
+                net_pnl = net_cash - pos["entry_cost"] - pos["entry_fee"]
+                con.execute("UPDATE meta SET value=value+? WHERE name='cash'", (net_cash,))
+                con.execute("DELETE FROM positions WHERE symbol=?", (symbol,))
+                con.execute("""INSERT INTO closed_trades(symbol,entry_price,exit_price,quantity,gross_pnl,entry_fee,exit_fee,net_pnl,opened_at,closed_at,reason)
+                               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                            (symbol, pos["entry_price"], fill, pos["quantity"], gross_pnl,
+                             pos["entry_fee"], exit_fee, net_pnl, pos["entry_time"], now,
+                             (req.reason or "MANUAL")[:80]))
+                row = dict(con.execute("SELECT * FROM closed_trades ORDER BY id DESC LIMIT 1").fetchone())
+                return {"status": "success", "mode": "DEMO", "action": "SELL", "closedTrade": row,
+                        "fillPrice": fill, "feeUsdt": exit_fee}
 
-        if not req.useDemo and not ALLOW_LIVE_TRADING:
-            raise HTTPException(status_code=403, detail="التداول الحقيقي معطل بمتغير البيئة ALLOW_LIVE_TRADING")
-
-        m_data = latest_market_data.get(req.symbol, {"bestAsk": 100.0})
-        entry_price = m_data["bestAsk"]
-        amount = req.amountUsdt / entry_price
-
-        pos = {
-            "symbol": req.symbol,
-            "entryPrice": entry_price,
-            "amount": amount,
-            "usdtValue": req.amountUsdt,
-            "peakPrice": entry_price,
-            "entryTime": now,
-            "stopLoss": entry_price * 0.996,
-            "takeProfit": entry_price * 1.0035,
-            "maxDuration": 180
-        }
-        save_position_db(pos)
-        return {"status": "success", "action": "BUY", "position": pos}
-
-    elif req.action.upper() == "SELL":
-        pos = get_position_db(req.symbol)
-        delete_position_db(req.symbol)
-        return {"status": "success", "action": "SELL", "closed_position": pos}
 
 @app.post("/api/position/evaluate-exit")
-async def evaluate_exit(req: EvaluateExitRequest):
-    pos = get_position_db(req.symbol)
-    if not pos:
-        return {"exit": False, "reason": "No active position"}
+async def evaluate_exit(req: ExitRequest):
+    symbol = normalized(req.symbol)
+    async with state_lock:
+        with connect() as con:
+            pos = get_position(con, symbol)
+            if not pos:
+                return {"exit": False, "reason": "NO_POSITION"}
+            elapsed = time.time() - pos["entry_time"]
+            try:
+                bid = current_book(symbol)["bid"]
+            except HTTPException:
+                # Never fabricate a price or delete a position on feed failure.
+                return {"exit": False, "reason": "STALE_DATA", "elapsedSec": int(elapsed),
+                        "warning": "انقطع تدفق الأسعار؛ يحتاج المركز متابعة عاجلة"}
+            if bid > pos["peak"]:
+                pos["peak"] = bid
+                con.execute("UPDATE positions SET peak=? WHERE symbol=?", (bid, symbol))
+            # Conservative trailing stop only after the unrealised gross gain covers estimated friction.
+            friction_pct = 2 * (FEE_RATE + SLIPPAGE_RATE) * 100
+            if (pos["peak"] / pos["entry_price"] - 1) * 100 > friction_pct + 0.15:
+                trailing = pos["peak"] * (1 - 0.0015)
+                protected = max(pos["stop_price"], trailing)
+                if protected > pos["stop_price"]:
+                    pos["stop_price"] = protected
+                    con.execute("UPDATE positions SET stop_price=? WHERE symbol=?", (protected, symbol))
+            reason = None
+            if bid <= pos["stop_price"]:
+                reason = "STOP_OR_TRAIL"
+            elif bid >= pos["target_price"]:
+                reason = "TAKE_PROFIT"
+            elif elapsed >= pos["max_duration"]:
+                reason = "TIMEOUT"
+            # Gross mark-to-market and net liquidation estimate are distinct.
+            gross_pct = (bid / pos["entry_price"] - 1) * 100
+            liquidation = pos["quantity"] * bid * (1 - SLIPPAGE_RATE) * (1 - FEE_RATE)
+            net_usdt = liquidation - pos["entry_cost"] - pos["entry_fee"]
+            return {"exit": bool(reason), "reason": reason or "HOLD", "elapsedSec": int(elapsed),
+                    "grossPnlPct": round(gross_pct, 4), "estimatedNetPnlUsdt": round(net_usdt, 5),
+                    "stopPrice": pos["stop_price"], "targetPrice": pos["target_price"], "peakPrice": pos["peak"]}
 
-    current_price = req.currentPrice
-    now = time.time()
-    elapsed = now - pos["entryTime"]
 
-    if current_price > pos["peakPrice"]:
-        pos["peakPrice"] = current_price
-        save_position_db(pos)
+@app.get("/api/state")
+def get_state():
+    return state()
 
-    pnl_pct = ((current_price - pos["entryPrice"]) / pos["entryPrice"]) * 100
-
-    if current_price >= pos["takeProfit"]:
-        return {"exit": True, "reason": "TARGET_REACHED", "pnlPct": pnl_pct}
-    if current_price <= pos["stopLoss"]:
-        return {"exit": True, "reason": "STOP_LOSS", "pnlPct": pnl_pct}
-    if elapsed >= pos["maxDuration"]:
-        return {"exit": True, "reason": "TIMEOUT", "pnlPct": pnl_pct}
-
-    return {"exit": False, "currentPnlPct": pnl_pct, "elapsedSec": int(elapsed)}
-
-@app.get("/api/diagnostics")
-async def get_diagnostics():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM positions")
-    active_count = cursor.fetchone()[0]
-    conn.close()
-
-    return {
-        "status": "healthy",
-        "engine": "Micro-Momentum V2",
-        "activePositionsCount": active_count,
-        "liveTradingAllowed": ALLOW_LIVE_TRADING,
-        "tokenStoreSize": len(valid_tokens)
-    }
 
 @app.get("/api/account-balance")
-async def account_balance(demo: bool = True):
-    return {"status": "success", "totalUsdtBalance": 10000.0 if demo else 0.0}
+def account_balance(demo: bool = True):
+    if not demo:
+        raise HTTPException(403, "لا يدعم هذا الإصدار رصيد الحساب الحقيقي")
+    s = state()
+    return {"status": "success", "totalUsdtBalance": s["cashUsdt"], "equityUsdt": s["equityUsdt"]}
 
-@app.get("/", response_class=HTMLResponse)
-async def read_index():
-    index_path = os.path.join(BASE_DIR, "index.html")
-    if os.path.exists(index_path):
-        with open(index_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read(), status_code=200)
-    return HTMLResponse(content="<h1>index.html Not Found</h1>", status_code=404)
+
+@app.get("/api/diagnostics")
+def diagnostics():
+    s = state()
+    history = s["history"]
+    wins = sum(x["net_pnl"] > 0 for x in history)
+    return {"status": "healthy", "engine": "Micro Momentum Demo V3", "liveTradingAllowed": False,
+            "activePositionsCount": len(s["positions"]), "recentClosedTrades": len(history),
+            "recentWinRatePct": round(wins / len(history) * 100, 2) if history else None,
+            "estimatedFeesPerSidePct": FEE_RATE * 100,
+            "warning": "التحليل إحصائي وليس نموذج AI، والنتائج تجريبية فقط"}
+
+
+@app.get("/frontend.js")
+def frontend_script():
+    return FileResponse(BASE / "frontend.js", media_type="text/javascript")
+
+
+@app.get("/")
+def home():
+    page = BASE / "index.html"
+    if not page.exists():
+        raise HTTPException(404, "index.html missing")
+    return FileResponse(page)
+
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
