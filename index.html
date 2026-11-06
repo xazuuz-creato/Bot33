@@ -1,207 +1,308 @@
-<!-- ... existing code -->
-        <!-- Controls Header -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <!-- Asset Scope Picker -->
-            <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-400">نطاق العملات المستهدفة</span>
-                    <i class="fa-solid fa-layer-group text-emerald-400 text-sm"></i>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="scopeTopBtn" onclick="setScope('top')" class="px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition">
-                        🔥 أعلى 6 عملات سيولة
-                    </button>
-                    <button id="scopeAllBtn" onclick="setScope('all')" class="px-3 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition">
-                        🌐 كافة الـ 30 عملة
-                    </button>
-                </div>
-            </div>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الحارس السريع - محرك السكالبينغ المباشر</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- TradingView Widget Script -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0e14',
+                        cardBg: '#151921',
+                        accentGreen: '#10b981',
+                        accentRed: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0e14; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen p-4 lg:p-6 space-y-6">
 
-            <!-- Mode & Budget Control -->
-            <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-400">وضع المحفظة والميزانية</span>
-                    <span id="modeBadge" class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold">تجريبي (Demo)</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button id="demoBtn" onclick="setMode(true)" class="flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md">تجريبي</button>
-                    <button id="liveBtn" onclick="setMode(false)" class="flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs">حقيقي (Spot)</button>
-                    <div class="relative w-28">
-                        <input type="number" id="budgetInput" value="100" onchange="updateBudget(this.value)" class="w-full bg-darkBg border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500" placeholder="الميزانية">
-                        <span class="absolute left-2 top-1.5 text-[10px] text-slate-500 font-mono">$</span>
-                    </div>
-                </div>
+    <!-- Header Section -->
+    <header class="flex flex-col md:flex-row items-center justify-between bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-xl gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-bold border border-emerald-500/30">
+                <i class="fa-solid fa-bolt animate-pulse"></i>
             </div>
-
-            <!-- ⏱️ التحكم التفاعلي بالوقف الزمني للصفقات -->
-            <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-400">الحد الأقصى لزمن الصفقة</span>
-                    <span id="timeoutDisplay" class="text-xs font-mono font-bold text-amber-400">180 ثانية (3 دقائق)</span>
-                </div>
-                <div class="space-y-1">
-                    <input type="range" id="timeoutRange" min="30" max="600" step="15" value="180" oninput="updateTimeoutValue(this.value)" class="w-full accent-amber-400 cursor-pointer">
-                    <div class="flex justify-between text-[10px] text-slate-500 font-mono">
-                        <span>30ث</span>
-                        <span>3 دقائق</span>
-                        <span>10 دقائق</span>
-                    </div>
-                </div>
+            <div>
+                <h1 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                    منصة الحارس السريع 
+                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">WebSocket Pro v10.5</span>
+                </h1>
+                <p class="text-xs text-slate-400">محرك سكالبينغ بالميكروثانية بفلترة العمولات والوقف التفاعلي</p>
             </div>
         </div>
+        
+        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+            <div class="text-left font-mono">
+                <div class="text-[10px] text-slate-400">رصيد USDT:</div>
+                <div id="balanceDisplay" class="text-sm font-bold text-emerald-400">$10,000.00</div>
+            </div>
+            <div class="h-8 w-px bg-slate-800"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                <span class="text-xs text-slate-300 font-mono">متصل مباشر</span>
+            </div>
+        </div>
+    </header>
 
-        <!-- Active Trades Table -->
-        <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+    <!-- Controls Header -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Asset Scope Picker -->
+        <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
             <div class="flex items-center justify-between">
-                <h3 class="text-sm font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-stopwatch text-emerald-400"></i>
-                    الصفقات النشطة وتوقيت الخروج
-                </h3>
-                <span id="activeCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">0 صفقات</span>
+                <span class="text-xs font-bold text-slate-400">نطاق العملات المستهدفة</span>
+                <i class="fa-solid fa-layer-group text-emerald-400 text-sm"></i>
             </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-right text-xs text-slate-300">
-                    <thead class="bg-darkBg text-slate-400 uppercase text-[10px] border-b border-slate-800">
-                        <tr>
-                            <th class="py-2.5 px-3">الرمز</th>
-                            <th class="py-2.5 px-3">سعر الدخول</th>
-                            <th class="py-2.5 px-3">السعر الحالي</th>
-                            <th class="py-2.5 px-3">الميزانية</th>
-                            <th class="py-2.5 px-3">النسبة (%)</th>
-                            <th class="py-2.5 px-3">الوقت المنقضي</th>
-                            <th class="py-2.5 px-3">الحالة والوقف</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
-                        <tr>
-                            <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يراقب السيولة الخاطفة.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 📊 سجل الصفقات المنتهية (Closed Trades & History) -->
-        <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
-            <div class="flex items-center justify-between">
-                <h3 class="text-sm font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
-                    سجل الصفقات المنتهية (الأرباح والخسائر)
-                </h3>
-                <div class="flex items-center gap-2">
-                    <span id="historyStatsBadge" class="text-xs bg-darkBg text-slate-300 px-3 py-1 rounded-lg border border-slate-700 font-mono">الصافي: $0.00 | نسبة النجاح: 0%</span>
-                    <button onclick="clearHistory()" class="text-[10px] text-slate-500 hover:text-slate-300 transition">مسح السجل</button>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-right text-xs text-slate-300">
-                    <thead class="bg-darkBg text-slate-400 uppercase text-[10px] border-b border-slate-800">
-                        <tr>
-                            <th class="py-2.5 px-3">الرمز</th>
-                            <th class="py-2.5 px-3">سعر الدخول</th>
-                            <th class="py-2.5 px-3">سعر الإغلاق</th>
-                            <th class="py-2.5 px-3">النتيجة (%)</th>
-                            <th class="py-2.5 px-3">صافي PnL ($)</th>
-                            <th class="py-2.5 px-3">مدة الصفقة</th>
-                            <th class="py-2.5 px-3">سبب الإغلاق</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyTradesTbody" class="divide-y divide-slate-800/50">
-                        <tr>
-                            <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مكتملة في السجل حتى الآن.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 🤖 البوت الخبير المحلل لحركة خوارزمياتنا (AI Strategy & Performance Analyzer) -->
-        <div class="bg-cardBg border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-bold border border-emerald-500/30">
-                        <i class="fa-solid fa-brain animate-pulse"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-emerald-400">البوت الخبير المحلل (AI Audit & Diagnostic Engine)</h3>
-                        <p class="text-[11px] text-slate-400">محلل مستقل 100% لتشخيص سلوك البوتات واكتشاف الأخطاء (بدون سلطة تنفيذية)</p>
-                    </div>
-                </div>
-                <button onclick="runAIAnalysis()" class="px-3 py-1.5 bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold hover:bg-emerald-400 transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-magnifying-glass-chart"></i> تشخيص الجلسة الآن
+            <div class="grid grid-cols-2 gap-2">
+                <button id="scopeTopBtn" onclick="setScope('top')" class="px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition">
+                    🔥 أعلى 6 عملات سيولة
+                </button>
+                <button id="scopeAllBtn" onclick="setScope('all')" class="px-3 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition">
+                    🌐 كافة الـ 30 عملة
                 </button>
             </div>
+        </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <!-- Algo Diagnostics -->
-                <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
-                    <span class="text-xs font-bold text-amber-400 block flex items-center gap-1.5">
-                        <i class="fa-solid fa-microchip"></i> خوارزمية الدخول المطبقة:
-                    </span>
-                    <p class="text-[11px] text-slate-300 leading-relaxed" id="aiAlgoDesc">
-                        دخول فوري بالميكروثانية عبر **WebSocket Streams** عند تسجيل `Imbalance Ratio >= 2.5x` في كتاب الطلبات بدون أي انتظار.
-                    </p>
-                </div>
-
-                <!-- Trades Trigger Evaluation -->
-                <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
-                    <span class="text-xs font-bold text-emerald-400 block flex items-center gap-1.5">
-                        <i class="fa-solid fa-bullseye"></i> سبب الدخول ورصد السيولة:
-                    </span>
-                    <p class="text-[11px] text-slate-300 leading-relaxed" id="aiTriggerDesc">
-                        حقن طلبات شراء مباشرة لمنع الشراء متأخراً في القمم وتفادي صفقات المدى المتوسط.
-                    </p>
-                </div>
-
-                <!-- Error & Performance Audit -->
-                <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
-                    <span class="text-xs font-bold text-rose-400 block flex items-center gap-1.5">
-                        <i class="fa-solid fa-bug"></i> تقرير المشاكل المكتشفة والحلول:
-                    </span>
-                    <div id="aiErrorsAudit" class="text-[11px] text-slate-300 space-y-1">
-                        <div>• جاري تحليل أداء الجلسة...</div>
-                    </div>
+        <!-- Mode & Budget Control -->
+        <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400">وضع المحفظة والميزانية</span>
+                <span id="modeBadge" class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold">تجريبي (Demo)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="demoBtn" onclick="setMode(true)" class="flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md">تجريبي</button>
+                <button id="liveBtn" onclick="setMode(false)" class="flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs">حقيقي (Spot)</button>
+                <div class="relative w-28">
+                    <input type="number" id="budgetInput" value="100" onchange="updateBudget(this.value)" class="w-full bg-darkBg border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500" placeholder="الميزانية">
+                    <span class="absolute left-2 top-1.5 text-[10px] text-slate-500 font-mono">$</span>
                 </div>
             </div>
         </div>
 
-        <!-- System Logs -->
-<!-- ... existing code -->
+        <!-- ⏱️ التحكم التفاعلي بالوقف الزمني للصفقات -->
+        <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400">الحد الأقصى لزمن الصفقة</span>
+                <span id="timeoutDisplay" class="text-xs font-mono font-bold text-amber-400">180 ثانية (3 دقائق)</span>
+            </div>
+            <div class="space-y-1">
+                <input type="range" id="timeoutRange" min="30" max="600" step="15" value="180" oninput="updateTimeoutValue(this.value)" class="w-full accent-amber-400 cursor-pointer">
+                <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                    <span>30ث</span>
+                    <span>3 دقائق</span>
+                    <span>10 دقائق</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Trades Table -->
+    <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold flex items-center gap-2">
+                <i class="fa-solid fa-stopwatch text-emerald-400"></i>
+                الصفقات النشطة وتوقيت الخروج
+            </h3>
+            <span id="activeCountBadge" class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-bold">0 صفقات</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs text-slate-300">
+                <thead class="bg-darkBg text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                        <th class="py-2.5 px-3">الرمز</th>
+                        <th class="py-2.5 px-3">سعر الدخول</th>
+                        <th class="py-2.5 px-3">السعر الحالي</th>
+                        <th class="py-2.5 px-3">الميزانية</th>
+                        <th class="py-2.5 px-3">النسبة (%)</th>
+                        <th class="py-2.5 px-3">الوقت المنقضي</th>
+                        <th class="py-2.5 px-3">الحالة والوقف</th>
+                    </tr>
+                </thead>
+                <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
+                    <tr>
+                        <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يراقب السيولة الخاطفة.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 📊 سجل الصفقات المنتهية (Closed Trades & History) -->
+    <div class="bg-cardBg border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                سجل الصفقات المنتهية (الأرباح والخسائر)
+            </h3>
+            <div class="flex items-center gap-2">
+                <span id="historyStatsBadge" class="text-xs bg-darkBg text-slate-300 px-3 py-1 rounded-lg border border-slate-700 font-mono">الصافي: $0.00 | نسبة النجاح: 0%</span>
+                <button onclick="clearHistory()" class="text-[10px] text-slate-500 hover:text-slate-300 transition">مسح السجل</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs text-slate-300">
+                <thead class="bg-darkBg text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                        <th class="py-2.5 px-3">الرمز</th>
+                        <th class="py-2.5 px-3">سعر الدخول</th>
+                        <th class="py-2.5 px-3">سعر الإغلاق</th>
+                        <th class="py-2.5 px-3">النتيجة (%)</th>
+                        <th class="py-2.5 px-3">صافي PnL ($)</th>
+                        <th class="py-2.5 px-3">مدة الصفقة</th>
+                        <th class="py-2.5 px-3">سبب الإغلاق</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTradesTbody" class="divide-y divide-slate-800/50">
+                    <tr>
+                        <td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مكتملة في السجل حتى الآن.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 🤖 البوت الخبير المحلل لحركة خوارزمياتنا -->
+    <div class="bg-cardBg border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-bold border border-emerald-500/30">
+                    <i class="fa-solid fa-brain animate-pulse"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-emerald-400">البوت الخبير المحلل (AI Audit & Diagnostic Engine)</h3>
+                    <p class="text-[11px] text-slate-400">محلل مستقل 100% لتشخيص سلوك البوتات واكتشاف الأخطاء (بدون سلطة تنفيذية)</p>
+                </div>
+            </div>
+            <button onclick="runAIAnalysis()" class="px-3 py-1.5 bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold hover:bg-emerald-400 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-magnifying-glass-chart"></i> تشخيص الجلسة الآن
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Algo Diagnostics -->
+            <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
+                <span class="text-xs font-bold text-amber-400 block flex items-center gap-1.5">
+                    <i class="fa-solid fa-microchip"></i> خوارزمية الدخول المطبقة:
+                </span>
+                <p class="text-[11px] text-slate-300 leading-relaxed" id="aiAlgoDesc">
+                    دخول فوري بالميكروثانية عبر <strong class="text-emerald-400">WebSocket Streams</strong> عند تسجيل <code class="bg-slate-800 px-1 py-0.5 rounded text-emerald-400">Imbalance Ratio >= 2.5x</code> في كتاب الطلبات بدون أي انتظار.
+                </p>
+            </div>
+
+            <!-- Trades Trigger Evaluation -->
+            <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
+                <span class="text-xs font-bold text-emerald-400 block flex items-center gap-1.5">
+                    <i class="fa-solid fa-bullseye"></i> سبب الدخول ورصد السيولة:
+                </span>
+                <p class="text-[11px] text-slate-300 leading-relaxed" id="aiTriggerDesc">
+                    حقن طلبات شراء مباشرة لمنع الشراء متأخراً في القمم وتفادي صفقات المدى المتوسط.
+                </p>
+            </div>
+
+            <!-- Error & Performance Audit -->
+            <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
+                <span class="text-xs font-bold text-rose-400 block flex items-center gap-1.5">
+                    <i class="fa-solid fa-bug"></i> تقرير المشاكل المكتشفة والحلول:
+                </span>
+                <div id="aiErrorsAudit" class="text-[11px] text-slate-300 space-y-1">
+                    <div>• جاري تحليل أداء الجلسة...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Logs Console -->
+    <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-terminal text-emerald-400"></i> سجل أحداث البوت المباشر (Console)
+            </span>
+            <button onclick="clearConsole()" class="text-[10px] text-slate-500 hover:text-slate-300">مسح السجل</button>
+        </div>
+        <div id="consoleLog" class="bg-darkBg border border-slate-900 rounded-xl p-3 h-32 overflow-y-auto font-mono text-[11px] space-y-1 text-slate-400">
+            <div>[إشعار] تم إطلاق المحرك وسجل السكالبينغ بنجاح...</div>
+        </div>
+    </div>
+
     <script>
-        const topAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'AAPLUSDT', 'NVDAUSDT', 'TSLAUSDT'];
-        const allAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT', 'AAPLUSDT', 'TSLAUSDT', 'NVDAUSDT', 'MSFTUSDT', 'AMZNUSDT', 'GOOGLUSDT'];
+        const topAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT'];
+        const allAssets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT', 'ADAUSDT', 'AVAXUSDT', 'LINKUSDT', 'NEARUSDT', 'APTUSDT', 'SHIBUSDT'];
         
         let currentScope = 'top';
         let activePairs = [...topAssets];
         let isDemoMode = true;
         let tradeBudget = 100.0;
         let maxConcurrentTrades = 2;
-        let maxTradeDurationSec = 180; // ⏱️ الوقف الزمني الافتراضي: 3 دقائق (180 ثانية)
+        let maxTradeDurationSec = 180;
         let activeTrades = [];
-        let completedTrades = []; // 📊 سجل الصفقات المنتهية
+        let completedTrades = [];
         let orderbookData = {};
-        let currentChartSymbol = 'BTCUSDT';
         let wsSockets = {};
 
         const BINANCE_FEE_PCT = 0.15;
 
         window.onload = function() {
             setMode(true);
-            renderChartSelector();
-            loadTradingViewChart(currentChartSymbol);
             setInterval(fetchBalance, 10000);
             initWebSockets();
-            setInterval(trackActiveTrades, 500); // متابعة دقيقة للصفقات النشطة
+            setInterval(trackActiveTrades, 500);
             runAIAnalysis();
         };
+
+        function setScope(scope) {
+            currentScope = scope;
+            activePairs = scope === 'top' ? [...topAssets] : [...allAssets];
+            document.getElementById('scopeTopBtn').className = scope === 'top' ? 'px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition' : 'px-3 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition';
+            document.getElementById('scopeAllBtn').className = scope === 'all' ? 'px-3 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition' : 'px-3 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition';
+            initWebSockets();
+        }
+
+        function setMode(demo) {
+            isDemoMode = demo;
+            document.getElementById('modeBadge').innerText = demo ? 'تجريبي (Demo)' : 'حقيقي (Spot)';
+            document.getElementById('modeBadge').className = demo ? 'text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold' : 'text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-md font-bold';
+            document.getElementById('demoBtn').className = demo ? 'flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md' : 'flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs';
+            document.getElementById('liveBtn').className = !demo ? 'flex-1 py-1.5 bg-rose-500 text-slate-950 font-bold rounded-xl text-xs shadow-md' : 'flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs';
+            fetchBalance();
+        }
+
+        function updateBudget(val) {
+            tradeBudget = parseFloat(val) || 100;
+        }
 
         function updateTimeoutValue(val) {
             maxTradeDurationSec = parseInt(val);
             const mins = Math.floor(maxTradeDurationSec / 60);
             const secs = maxTradeDurationSec % 60;
             document.getElementById('timeoutDisplay').innerText = `${maxTradeDurationSec} ثانية (${mins > 0 ? mins + ' د' : ''} ${secs > 0 ? secs + 'ث' : ''})`;
+        }
+
+        async function fetchBalance() {
+            try {
+                const res = await fetch(`/api/account-balance?demo=${isDemoMode}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    document.getElementById('balanceDisplay').innerText = `$${data.totalUsdtBalance.toFixed(2)}`;
+                }
+            } catch(e) {}
         }
 
         async function initWebSockets() {
@@ -245,7 +346,6 @@
             const ob = orderbookData[symbol];
             if (!ob) return;
 
-            // ⚡ شروط السكالبينغ المباشرة والميكروثانية
             if (ob.imbalanceRatio >= 2.5 && ob.spreadPct <= 0.05) {
                 executeBuyTrade(symbol, ob.bestAsk);
             }
@@ -253,8 +353,8 @@
 
         async function executeBuyTrade(symbol, price) {
             const entryPrice = price;
-            const slPrice = entryPrice * 0.9945; // الوقف الطبيعي (-0.55%)
-            const tpPrice = entryPrice * 1.0045; // الهدف الخاطف (+0.45%)
+            const slPrice = entryPrice * 0.9945;
+            const tpPrice = entryPrice * 1.0045;
 
             const trade = {
                 id: `TRD-${Date.now()}`,
@@ -297,10 +397,9 @@
                 const pnlPct = ((trade.currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
                 const elapsedSec = Math.round((now - trade.entryTime) / 1000);
 
-                // 🎯 رفع الوقف للتعادل الصافي عند +0.28%
                 if (pnlPct >= 0.28 && !trade.isBreakEvenTriggered) {
                     trade.isBreakEvenTriggered = true;
-                    trade.slPrice = trade.entryPrice * 1.0015; // تأمين العمولات
+                    trade.slPrice = trade.entryPrice * 1.0015;
                     logMessage(`🛡️ [تأمين التعادل] تم رفع وقف ${trade.symbol} لحماية العمولات بربح صافي!`, "info");
                 }
 
@@ -351,7 +450,6 @@
             const netPnlUsdt = trade.budget * ((pnlPct - BINANCE_FEE_PCT) / 100);
             const durationSec = Math.round((Date.now() - trade.entryTime) / 1000);
 
-            // إضافة الصفقة لسجل التاريخ
             completedTrades.unshift({
                 symbol: trade.symbol,
                 entryPrice: trade.entryPrice,
@@ -414,7 +512,6 @@
             }).join('');
         }
 
-        // 🤖 الخبير المحلل المستقل للتشخيص ومراجعة الأداء فقط (Diagnostic & Audit Only)
         function runAIAnalysis() {
             const auditElem = document.getElementById('aiErrorsAudit');
             
@@ -451,4 +548,17 @@
             renderHistoryTrades();
             runAIAnalysis();
         }
-// ... existing code -->
+
+        function logMessage(msg, type = "info") {
+            const consoleElem = document.getElementById('consoleLog');
+            const colorClass = type === "success" ? "text-emerald-400" : type === "danger" ? "text-rose-400" : "text-amber-400";
+            const timeStr = new Date().toLocaleTimeString('ar-SA');
+            consoleElem.innerHTML = `<div class="${colorClass}">[${timeStr}] ${msg}</div>` + consoleElem.innerHTML;
+        }
+
+        function clearConsole() {
+            document.getElementById('consoleLog').innerHTML = `<div>[إشعار] تم مسح سجل الأحداث...</div>`;
+        }
+    </script>
+</body>
+</html>
