@@ -11,9 +11,9 @@ except ImportError:
     ccxtpro = None
 
 app = FastAPI(
-    title="Binance Fast Scalper Backend with WebSocket",
-    description="High-Speed Scalper Engine for Spot Trading using WebSocket and Orderbook Imbalance",
-    version="10.0.0"
+    title="Binance Fast Scalper Backend with Instant WebSocket",
+    description="Microsecond Execution Scalper Engine using Binance WebSocket Streams",
+    version="10.5.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -57,9 +57,9 @@ async def get_config():
     return {
         "hasEnvKeys": bool(api_k),
         "apiKeyMasked": f"{api_k[:8]}...{api_k[-6:]}" if api_k else "",
-        "mode": "Binance Unified Spot API (WebSocket Pro Engine Active) ⚡",
+        "mode": "Binance High-Frequency WebSocket Engine ⚡",
         "hasCcxtPro": ccxtpro is not None,
-        "message": "مُعالج التداول عبر WebSocket المباشر جاهز لأعلى درجات السرعة والأمان!"
+        "message": "مُعالج الدخول بالميكروثانية عبر WebSocket جاهز للعمل!"
     }
 
 @app.get("/api/account-balance")
@@ -95,6 +95,9 @@ async def get_binance_balance(demo: bool = True):
 
 @app.post("/api/execute-order")
 async def execute_binance_order(req: TradeRequest):
+    """
+    تنفيذ فوري خالي من التأخير اللحظي
+    """
     exchange = get_binance_exchange(req.apiKey, req.secretKey, use_demo=req.useDemo)
     try:
         formatted_symbol = req.symbol.replace('-', '').replace('/', '')
@@ -120,7 +123,7 @@ async def execute_binance_order(req: TradeRequest):
         return {
             "status": "success",
             "order_id": order.get('id', 'DEMO-ORDER-101'),
-            "message": f"تم تنفيذ أمر {side.upper()} {'(تجريبي)' if req.useDemo else '(حقيقي)'} بنجاح على {ccxt_symbol}!",
+            "message": f"تم تنفيذ أمر {side.upper()} الفوري {'(تجريبي)' if req.useDemo else '(حقيقي)'} بنجاح على {ccxt_symbol}!",
             "details": order
         }
 
@@ -141,10 +144,10 @@ async def execute_binance_order(req: TradeRequest):
 @app.get("/api/ws-stream-ticker")
 async def stream_ticker(symbol: str = "BTCUSDT"):
     """
-    اختبار البث الحي للسعر ودفتر الطلبات عبر WebSocket مباشرة
+    بث فوري مباشر للميكروثانية عبر WebSocket
     """
-    if ccxtpro is me None:
-        return {"status": "fallback", "message": "ccxt.pro not available, using REST"}
+    if ccxtpro is None:
+        return {"status": "fallback", "message": "ccxt.pro not available, using REST fallback"}
     
     formatted_symbol = symbol.replace('USDT', '/USDT')
     exchange = get_binance_exchange(is_pro=True)
