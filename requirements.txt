@@ -1,5 +1,5 @@
 fastapi0.110.0
-uvicorn[standard]0.28.0
+uvicorn[standard]==0.28.0
 gunicorn21.2.0
 ccxt4.2.75
 websockets12.0
