@@ -238,10 +238,8 @@
     </div>
 
     <script>
-        // 6 عملات + 6 أسهم عالية السيولة
         const top12Assets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT', 'NVDAUSDT', 'TSLAUSDT', 'AAPLUSDT', 'AMZNUSDT', 'MSFTUSDT', 'GOOGLUSDT'];
         
-        // كافة 30 رمزا
         const allAssets = [
             'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'DOGEUSDT', 'PEPEUSDT', 'XRPUSDT',
             'NVDAUSDT', 'TSLAUSDT', 'AAPLUSDT', 'AMZNUSDT', 'MSFTUSDT', 'GOOGLUSDT',
@@ -374,7 +372,6 @@
             const ob = orderbookData[symbol];
             if (!ob || !ob.bestAsk) return;
 
-            // رفع معيار الدخول إلى 3.0x على الأقل لمنع الصفقات الميتة
             if (ob.imbalanceRatio >= 3.0) {
                 executeBuyTrade(symbol, ob.bestAsk, ob.imbalanceRatio);
             }
@@ -382,7 +379,6 @@
 
         async function executeBuyTrade(symbol, price, imbalanceRatio) {
             const entryPrice = price;
-            // هدف السكالبينغ السريع بين +0.25% إلى +0.40%
             const calculatedTpPct = Math.min(0.40, Math.max(0.25, imbalanceRatio * 0.08));
             const slPrice = entryPrice * 0.9960; 
             const tpPrice = entryPrice * (1 + (calculatedTpPct / 100));
@@ -527,7 +523,7 @@
             const winRate = ((wins / completedTrades.length) * 100).toFixed(1);
             const totalNetPnl = completedTrades.reduce((acc, t) => acc + t.netPnlUsdt, 0).toFixed(2);
 
-            badge.innerText = `الصافي: $${totalNetPnl} USDT | نسبة النجاح: ${winRate}% (${wins}/${completedTrades.length})`;
+            badge.innerText = `الصافي: $${totalNetPNL} USDT | نسبة النجاح: ${winRate}% (${wins}/${completedTrades.length})`;
 
             tbody.innerHTML = completedTrades.map(t => {
                 const isWin = t.netPnlUsdt > 0;
