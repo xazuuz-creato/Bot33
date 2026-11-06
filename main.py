@@ -1,18 +1,24 @@
 import os
+import asyncio
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import ccxt.async_support as ccxt
 
+try:
+    import ccxt.pro as ccxtpro
+except ImportError:
+    ccxtpro = None
+
 app = FastAPI(
-    title="Binance Unified Scalper Backend",
-    description="Unified Scalper Engine for Crypto and Global Stocks via Binance API",
-    version="8.0.0"
+    title="Binance Fast Scalper Backend with WebSocket",
+    description="High-Speed Scalper Engine for Spot Trading using WebSocket and Orderbook Imbalance",
+    version="10.0.0"
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# مفاتيح Binance الخاصة بك
+# مفاتيح Binance
 DEFAULT_BINANCE_API_KEY = os.environ.get("BINANCE_API_KEY", "XivZSVpFnN9o7bPuQYOud41fuuAW4HotktcPk47GuGV1qXSPQMOldUsPeMzruSWz")
 DEFAULT_BINANCE_SECRET_KEY = os.environ.get("BINANCE_SECRET_KEY", "hlecSSicPZZQsBoKNkpfQiREigKSHrA74pFcG6PYAXTbwHRvbNNRI1mBMGOi1iQ")
 
@@ -24,7 +30,7 @@ class TradeRequest(BaseModel):
     amountUsdt: float = 100.0
     useDemo: bool = True
 
-def get_binance_exchange(api_key=None, secret_key=None, use_demo=True):
+def get_binance_exchange(api_key=None, secret_key=None, use_demo=True, is_pro=False):
     config = {
         'apiKey': api_key or DEFAULT_BINANCE_API_KEY,
         'secret': secret_key or DEFAULT_BINANCE_SECRET_KEY,
@@ -35,7 +41,11 @@ def get_binance_exchange(api_key=None, secret_key=None, use_demo=True):
         }
     }
     
-    exchange = ccxt.binance(config)
+    if is_pro and ccxtpro is not None:
+        exchange = ccxtpro.binance(config)
+    else:
+        exchange = ccxt.binance(config)
+
     if use_demo:
         exchange.set_sandbox_mode(True)
         
@@ -47,8 +57,9 @@ async def get_config():
     return {
         "hasEnvKeys": bool(api_k),
         "apiKeyMasked": f"{api_k[:8]}...{api_k[-6:]}" if api_k else "",
-        "mode": "Binance Unified Spot API (Demo / Live Ready) ⚡",
-        "message": "جاهز للتداول التجريبي والحقيقي لجميع العملات والأسهم!"
+        "mode": "Binance Unified Spot API (WebSocket Pro Engine Active) ⚡",
+        "hasCcxtPro": ccxtpro is not None,
+        "message": "مُعالج التداول عبر WebSocket المباشر جاهز لأعلى درجات السرعة والأمان!"
     }
 
 @app.get("/api/account-balance")
@@ -126,6 +137,36 @@ async def execute_binance_order(req: TradeRequest):
             "status": "error",
             "message": f"خطأ تنفيذ أمر بينانس: {str(e)}"
         }
+
+@app.get("/api/ws-stream-ticker")
+async def stream_ticker(symbol: str = "BTCUSDT"):
+    """
+    اختبار البث الحي للسعر ودفتر الطلبات عبر WebSocket مباشرة
+    """
+    if ccxtpro is me None:
+        return {"status": "fallback", "message": "ccxt.pro not available, using REST"}
+    
+    formatted_symbol = symbol.replace('USDT', '/USDT')
+    exchange = get_binance_exchange(is_pro=True)
+    
+    try:
+        orderbook = await exchange.watch_order_book(formatted_symbol, limit=5)
+        await exchange.close()
+        
+        bids_vol = sum(b[1] for b in orderbook['bids'])
+        asks_vol = sum(a[1] for a in orderbook['asks'])
+        ratio = bids_vol / asks_vol if asks_vol > 0 else 1.0
+        
+        return {
+            "status": "success",
+            "symbol": symbol,
+            "best_bid": orderbook['bids'][0][0] if orderbook['bids'] else 0,
+            "best_ask": orderbook['asks'][0][0] if orderbook['asks'] else 0,
+            "imbalance_ratio": round(ratio, 2)
+        }
+    except Exception as e:
+        await exchange.close()
+        return {"status": "error", "message": str(e)}
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
