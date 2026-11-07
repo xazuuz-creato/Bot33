@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>منصة الحارس السريع - محرك السكالبينغ</title>
+<title>منصة الحارس السريع - محرك السكالبينغ المؤسسي</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script>
@@ -37,29 +37,30 @@ body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Ro
 <div>
 <h1 class="text-base font-bold text-slate-100 flex items-center gap-2">
 منصة الحارس السريع
-<span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">
-Scalper V3
+<span id="versionBadge" class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">
+Scalper V3 (Micro-Momentum)
 </span>
 </h1>
 <p class="text-xs text-slate-400">
-متابعة سيولة Spot | تداول تجريبي مع احتساب تكاليف التنفيذ
+متابعة سيولة Spot | دعم التداول التجريبي والحقيقي عبر Binance Spot API
 </p>
 </div>
 </div>
 <div class="flex items-center gap-3 w-full md:w-auto justify-end">
 <div class="text-left font-mono">
-<div class="text-[10px] text-slate-400">رصيد المحفظة:</div>
+<div class="text-[10px] text-slate-400" id="balanceLabel">رصيد المحفظة التجريبية:</div>
 <div id="balanceDisplay" class="text-sm font-bold text-emerald-400">$10,000.00</div>
 </div>
 <div class="h-8 w-px bg-slate-800"></div>
 <div class="flex items-center gap-2">
-<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-<span class="text-xs text-slate-300 font-mono">تجريبي فقط</span>
+<span id="statusPing" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+<span id="statusText" class="text-xs text-slate-300 font-mono">وضع التجربة (Demo)</span>
 </div>
 </div>
 </header>
 <!-- CONTROLS -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- SCOPE -->
 <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
 <div class="flex items-center justify-between">
 <span class="text-xs font-bold text-slate-400">نطاق الأصول المستهدفة</span>
@@ -74,6 +75,7 @@ Scalper V3
 </button>
 </div>
 </div>
+<!-- MODE & BUDGET -->
 <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
 <div class="flex items-center justify-between">
 <span class="text-xs font-bold text-slate-400">وضع التداول والميزانية</span>
@@ -86,7 +88,7 @@ Scalper V3
 تجريبي
 </button>
 <button id="liveBtn" onclick="setMode(false)" class="flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs">
-حقيقي (معطل)
+حقيقي (Spot)
 </button>
 <div class="relative w-28">
 <input type="number" id="budgetInput" value="100" min="10" max="100000" class="w-full bg-darkBg border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-emerald-500" placeholder="الميزانية">
@@ -94,6 +96,7 @@ Scalper V3
 </div>
 </div>
 </div>
+<!-- TIMEOUT -->
 <div class="bg-cardBg border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
 <div class="flex items-center justify-between">
 <span class="text-xs font-bold text-slate-400">الحد الأقصى لزمن الصفقة</span>
@@ -126,9 +129,9 @@ Scalper V3
 <tr>
 <th class="py-2.5 px-3">الرمز</th>
 <th class="py-2.5 px-3">سعر الدخول</th>
-<th class="py-2.5 px-3">السعر الحالي</th>
+<th class="py-2.5 px-3">السعر الأعلى</th>
 <th class="py-2.5 px-3">الميزانية</th>
-<th class="py-2.5 px-3">النسبة (%)</th>
+<th class="py-2.5 px-3">النمط</th>
 <th class="py-2.5 px-3">الوقت المنقضي</th>
 <th class="py-2.5 px-3">الحالة والوقف</th>
 </tr>
@@ -136,7 +139,7 @@ Scalper V3
 <tbody id="activeTradesTbody" class="divide-y divide-slate-800/50">
 <tr>
 <td colspan="7" class="py-6 text-center text-slate-500">
-لا توجد صفقات مفتوحة حالياً. المحرك يراقب الأصول المحددة.
+لا توجد صفقات مفتوحة حالياً. المحرك المؤسسي يراقب الأصول المحددة.
 </td>
 </tr>
 </tbody>
@@ -153,9 +156,6 @@ Scalper V3
 <div class="flex items-center gap-2">
 <span id="historyStatsBadge" class="text-xs bg-darkBg text-slate-300 px-3 py-1 rounded-lg border border-slate-700 font-mono">
 الصافي: ￼
-￼
-￼
-مسح السجل
 ￼
 ￼
 ￼
@@ -210,16 +210,16 @@ Scalper V3
 خوارزمية الدخول المطبقة:
 </span>
 <p id="aiAlgoDesc" class="text-[11px] text-slate-300 leading-relaxed">
-تأكيد تدفق الشراء المنفذ مع التحكم في تكاليف التداول.
+Micro-Momentum V3: احتساب نسبة الشراء المنفذ + عدم توازن دفتر الأوامر + فلترة العمولات والسبريد.
 </p>
 </div>
 <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
 <span class="text-xs font-bold text-emerald-400 block">
 <i class="fa-solid fa-bullseye"></i>
-سبب الدخول وتحليل الأصول:
+حالة الربط ومفاتيح API:
 </span>
 <p id="aiTriggerDesc" class="text-[11px] text-slate-300 leading-relaxed">
-انتظار تأكيد الزخم والسيولة قبل السماح بالدخول.
+جارِ جلب تشخيص مفاتيح Binance والربط المباشر من السيرفر...
 </p>
 </div>
 <div class="bg-darkBg p-3.5 rounded-xl border border-slate-800 space-y-2">
@@ -228,7 +228,7 @@ Scalper V3
 تقرير التشخيص والمشاكل المكتشفة:
 </span>
 <div id="aiErrorsAudit" class="text-[11px] text-slate-300 space-y-1">
-<div>• في انتظار التشخيص الفعلي من نتائج الصفقات التجريبية.</div>
+<div>• اضغط على "تشخيص الجلسة" لفحص النظام تلقائياً.</div>
 </div>
 </div>
 </div>
@@ -245,10 +245,10 @@ Scalper V3
 </button>
 </div>
 <div id="consoleLog" class="bg-darkBg border border-slate-900 rounded-xl p-3 h-32 overflow-y-auto font-mono text-[11px] space-y-1 text-slate-400">
-<div>[إشعار] تم إطلاق محرك السكالبينغ التجريبي V3...</div>
+<div>[إشعار] تم تشغيل المحرك المؤسسي بنجاح...</div>
 </div>
 </div>
-<!-- INTEGRATED FRONTEND ENGINE -->
+<!-- SCRIPT ENGINE -->
 <script>
 const top12Assets = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'BNBUSDT', 'DOGEUSDT', 'ADAUSDT', 'LINKUSDT', 'AVAXUSDT', 'LTCUSDT', 'DOTUSDT', 'TRXUSDT'];
 const allAssets = [
@@ -264,6 +264,7 @@ let tradeBuffer = [];
 window.onload = function() {
 setScope('top12');
 updateState();
+runAIAnalysis();
 setInterval(updateState, 2000);
 setInterval(evaluateEngineLoop, 900);
 setInterval(sendTradeBuffer, 300);
@@ -278,18 +279,53 @@ allBtn.className = "px-2.5 py-2 bg-darkBg text-slate-400 border border-slate-800
 logMessage("🔥 تم تحديد نطاق: أفضل 12 عملة Spot", "info");
 } else {
 activePairs = [...allAssets];
-allBtn.className = "px-2.5 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold transition text-center";
-topBtn.className = "px-2.5 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition text-center";
+allBtn.className = "px-2.5 py-2 bg-darkBg text-slate-400 border border-slate-800 rounded-xl text-xs font-bold hover:bg-slate-800 transition text-center";
+topBtn.className = "px-2.5 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-bold transition text-center";
 logMessage("🌐 تم تحديد نطاق: حتى 30 عملة Spot", "info");
 }
 initCombinedWebSocket();
 }
-function setMode(demo) {
-if(!demo) {
-logMessage("⚠️ الوضع الحقيقي معطل حالياً من السيرفر. تم الإبقاء على الوضع التجريبي.", "danger");
+async function setMode(demo) {
+const demoBtn = document.getElementById('demoBtn');
+const liveBtn = document.getElementById('liveBtn');
+const modeBadge = document.getElementById('modeBadge');
+const balanceLabel = document.getElementById('balanceLabel');
+const statusPing = document.getElementById('statusPing');
+const statusText = document.getElementById('statusText');
+if (!demo) {
+try {
+const res = await fetch('/api/diagnostics');
+const diag = await res.json();
+if (!diag.liveTradingAllowed) {
+logMessage("⚠️ التداول الحقيقي معطل من السيرفر. يلزم تفعيل ALLOW_LIVE_TRADING=true وإضافة مفاتيح Binance API في بيئة Render.", "danger");
 return;
 }
-isDemoMode = true;
+} catch(e) {
+logMessage("⚠️ تعذر فحص حالة التداول الحقيقي.", "danger");
+return;
+}
+}
+isDemoMode = demo;
+if (isDemoMode) {
+demoBtn.className = "flex-1 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shadow-md";
+liveBtn.className = "flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs";
+modeBadge.className = "text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold";
+modeBadge.innerText = "تجريبي (Demo)";
+balanceLabel.innerText = "رصيد المحفظة التجريبية:";
+statusPing.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping";
+statusText.innerText = "وضع التجربة (Demo)";
+logMessage("🧪 تم التبديل إلى التداول التجريبي (Demo)", "info");
+} else {
+liveBtn.className = "flex-1 py-1.5 bg-rose-500 text-slate-950 font-bold rounded-xl text-xs shadow-md";
+demoBtn.className = "flex-1 py-1.5 bg-darkBg text-slate-400 border border-slate-800 font-bold rounded-xl text-xs";
+modeBadge.className = "text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/40 px-2 py-0.5 rounded-md font-bold";
+modeBadge.innerText = "تداول حقيقي (Live Spot)";
+balanceLabel.innerText = "رصيد Binance USDT الحقيقي:";
+statusPing.className = "w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping";
+statusText.innerText = "حقيقي (Binance Spot)";
+logMessage("⚡ تم التبديل إلى التداول الحقيقي المباشر عبر Binance Spot!", "danger");
+}
+updateState();
 }
 function updateTimeoutValue(val) {
 const mins = Math.floor(val / 60);
@@ -304,7 +340,7 @@ const streams = activePairs.flatMap(s => [⁠${s.toLowerCase()}@depth5@100ms⁠,
 const wsUrl = ⁠wss://stream.binance.com:9443/stream?streams=${streams}⁠;
 wsSocket = new WebSocket(wsUrl);
 wsSocket.onopen = () => {
-logMessage("⚡ تم الاتصال بالبث المباشر للسيولة عبر Binance WebSocket", "success");
+logMessage("⚡ تم الاتصال المباشر بثفقات وعمق السيولة عبر Binance WebSocket", "success");
 };
 wsSocket.onmessage = (event) => {
 try {
@@ -364,7 +400,7 @@ body: JSON.stringify({ symbol: symbol })
 });
 const evalData = await res.json();
 if (evalData.enter && evalData.signalToken) {
-logMessage(⁠🎯 [إشارة ممتازة] ${symbol} | النتيجة: ${evalData.score}% - جارِ تنفيذ الأمر...⁠, "success");
+logMessage(⁠🎯 [إشارة دخول مؤكدة] ${symbol} | النتيجة: ${evalData.score}% - جارِ تنفيذ الصفقة...⁠, "success");
 const budget = parseFloat(document.getElementById('budgetInput').value) || 100;
 const maxHold = parseInt(document.getElementById('timeoutRange').value) || 180;
 const execRes = await fetch('/api/execute-order', {
@@ -375,13 +411,14 @@ symbol: symbol,
 action: 'BUY',
 amountUsdt: budget,
 signalToken: evalData.signalToken,
-useDemo: true,
+useDemo: isDemoMode,
 maxHoldSeconds: maxHold
 })
 });
 const orderResult = await execRes.json();
 if (execRes.ok && orderResult.status === 'success') {
-logMessage(⁠🚀 [تم شراء ${symbol}] بسعر: $${orderResult.fillPrice}⁠, "success");
+const modeText = orderResult.mode === 'LIVE' ? 'حقيقي (Binance Spot)' : 'تجريبي';
+logMessage(⁠🚀 [تم تنفيذ الشراء ${symbol}] (${modeText}) بسعر: $${orderResult.fillPrice}⁠, "success");
 updateState();
 }
 }
@@ -390,9 +427,13 @@ updateState();
 }
 async function updateState() {
 try {
+const balRes = await fetch(⁠/api/account-balance?demo=${isDemoMode}⁠);
+const balData = await balRes.json();
+if(balData.status === 'success') {
+document.getElementById('balanceDisplay').innerText = ⁠$${balData.totalUsdtBalance.toFixed(2)}⁠;
+}
 const res = await fetch('/api/state');
 const stateData = await res.json();
-document.getElementById('balanceDisplay').innerText = ⁠$${stateData.cashUsdt.toFixed(2)}⁠;
 renderPositions(stateData.positions);
 renderHistory(stateData.history);
 for (let pos of stateData.positions) {
@@ -410,7 +451,7 @@ headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({
 symbol: pos.symbol,
 action: 'SELL',
-useDemo: true,
+useDemo: !pos.is_live,
 reason: exitData.reason
 })
 });
@@ -423,12 +464,13 @@ function renderPositions(positions) {
 const tbody = document.getElementById('activeTradesTbody');
 document.getElementById('activeCountBadge').innerText = ⁠${positions.length} صفقات⁠;
 if (positions.length === 0) {
-tbody.innerHTML = ⁠<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك يراقب الأصول المحددة.</td></tr>⁠;
+tbody.innerHTML = ⁠<tr><td colspan="7" class="py-6 text-center text-slate-500">لا توجد صفقات مفتوحة حالياً. المحرك المؤسسي يراقب الأصول المحددة.</td></tr>⁠;
 return;
 }
 tbody.innerHTML = positions.map(p => {
 const elapsedSec = Math.round(Date.now() / 1000 - p.entry_time);
-return ⁠<tr class="hover:bg-slate-900/40"> <td class="py-2.5 px-3 font-bold font-mono text-slate-200">${p.symbol}</td> <td class="py-2.5 px-3 font-mono text-slate-400">$${p.entry_price.toFixed(4)}</td> <td class="py-2.5 px-3 font-mono text-slate-200">$${p.peak.toFixed(4)}</td> <td class="py-2.5 px-3 font-mono text-emerald-400">$${p.entry_cost.toFixed(2)}</td> <td class="py-2.5 px-3 font-mono text-slate-400">هدف: $${p.target_price.toFixed(4)}</td> <td class="py-2.5 px-3 font-mono text-amber-400 font-bold">${elapsedSec}ث / ${p.max_duration}ث</td> <td class="py-2.5 px-3 font-mono text-[11px] text-emerald-400">مفتوحة (وقف: $${p.stop_price.toFixed(4)})</td> </tr>⁠;
+const modeLabel = p.is_live ? '<span class="text-rose-400 font-bold">حقيقي</span>' : '<span class="text-amber-400">تجريبي</span>';
+return ⁠<tr class="hover:bg-slate-900/40"> <td class="py-2.5 px-3 font-bold font-mono text-slate-200">${p.symbol}</td> <td class="py-2.5 px-3 font-mono text-slate-400">$${p.entry_price.toFixed(4)}</td> <td class="py-2.5 px-3 font-mono text-slate-200">$${p.peak.toFixed(4)}</td> <td class="py-2.5 px-3 font-mono text-emerald-400">$${p.entry_cost.toFixed(2)}</td> <td class="py-2.5 px-3 font-mono text-xs">${modeLabel}</td> <td class="py-2.5 px-3 font-mono text-amber-400 font-bold">${elapsedSec}ث / ${p.max_duration}ث</td> <td class="py-2.5 px-3 font-mono text-[11px] text-emerald-400">نشطة (وقف: $${p.stop_price.toFixed(4)})</td> </tr>⁠;
 }).join('');
 }
 function renderHistory(history) {
@@ -453,19 +495,21 @@ async function runAIAnalysis() {
 try {
 const res = await fetch('/api/diagnostics');
 const diag = await res.json();
+const triggerDesc = document.getElementById('aiTriggerDesc');
 const auditElem = document.getElementById('aiErrorsAudit');
+if(diag.hasApiKeysConfigured) {
+triggerDesc.innerHTML = ⁠<span class="text-emerald-400 font-bold">✔ تم قراءة مفاتيح Binance API بنجاح من متغيرات البيئة.</span>⁠;
+} else {
+triggerDesc.innerHTML = ⁠<span class="text-amber-400">⚠️ لم تم إضافة مفاتيح Binance API بعد. النظام يعمل في الوضع التجريبي.</span>⁠;
+}
 let html = ⁠<div>• حالة المحرك: <strong class="text-emerald-400">${diag.engine}</strong></div>⁠;
-html += ⁠<div>• عدد المراكز النشطة: ${diag.activePositionsCount}</div>⁠;
+html += ⁠<div>• الصفقات النشطة حالياً: ${diag.activePositionsCount}</div>⁠;
+html += ⁠<div>• التداول الحقيقي متاح: <strong class="${diag.liveTradingAllowed ? 'text-emerald-400' : 'text-slate-400'}">${diag.liveTradingAllowed ? 'نعم' : 'معطل'}</strong></div>⁠;
 if (diag.recentWinRatePct !== null && diag.recentWinRatePct !== undefined) {
 html += ⁠<div>• نسبة نجاح الصفقات الأخيرة: <strong class="text-amber-400">${diag.recentWinRatePct}%</strong></div>⁠;
-} else {
-html += ⁠<div>• الصفقات الأخيرة: لا توجد صفقات مغلقة كافية بعد.</div>⁠;
 }
 auditElem.innerHTML = html;
 } catch(e) {}
-}
-function clearHistory() {
-logMessage("إعادة تشغيل السجل مقترنة بحالة قاعدة البيانات.", "info");
 }
 function logMessage(msg, type = "info") {
 const consoleElem = document.getElementById('consoleLog');
