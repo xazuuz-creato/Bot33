@@ -1,4 +1,3 @@
-
 import os
 import time
 import math
@@ -25,7 +24,7 @@ DB_PATH = Path(
     os.getenv("DATABASE_PATH", str(BASE_DIR / "scalper.sqlite3"))
 )
 
-# مفاتيح Binance عبر متغيرات البيئة بدلاً من كتابتها مكشوفة في الكود
+# قراءة مفاتيح Binance عبر متغيرات البيئة بأمان
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "").strip()
 BINANCE_SECRET_KEY = os.getenv("BINANCE_SECRET_KEY", "").strip()
 ALLOW_LIVE_TRADING = os.getenv("ALLOW_LIVE_TRADING", "false").lower() == "true"
@@ -397,7 +396,6 @@ async def execute_order(req: OrderRequest):
 
                 if is_live:
                     try:
-                        # تنفيذ شراء حقيقي عبر Binance Spot API
                         formatted_symbol = f"{symbol[:-4]}/USDT"
                         order = await exchange.create_market_buy_order(formatted_symbol, quantity)
                         fill = float(order.get('average', fill))
@@ -569,21 +567,3 @@ def home():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
-```
-
----
-
-### ⚠️ ملاحظة بخصوص الصلاحية المفعلة في مفتاح الـ API الخاص بك:
-في الصورة المرفقة، الخيار المفعّل هو **"إتاحة القراءة"** فقط (Read-only)، بينما خيار **"تمكين التداول الفوري" (Enable Spot Trading)** **غير مفعل** (مربع غير مؤشر).
-
-إذا أردت استخدام هذا المفتاح للتداول التجريبي الحقيقي، يلزمك النقر على **"تعديل القيود" (Edit Restrictions)** في Binance وتفعيل خيار **"تمكين التداول الفوري"**.
-
-### 📋 طريقة تفعيل المفاتيح على سيرفر Render:
-1. اذهب لإعدادات الخدمة في **Render.com**.
-2. اختر **Environment Variables**.
-3. أضف المتغيرات التالية:
-   - `BINANCE_API_KEY` = `XivZSVpFnN9o7bPuQYOud41fuuAW4HotktcPk47GuGV1qXSPQMOldUsPeMzruSWz`
-   - `BINANCE_SECRET_KEY` = `hlecSSicPZZQsBoKNkpfQiREigKSHrA74pFcG6PYXAXTbwHRvbNNRI1mBMGOi1iQ`
-   - `ALLOW_LIVE_TRADING` = `true`
-
-تم دمج دعم CCXT والربط بأمان في ملف **`main.py`** في المحرر على اليمين!
