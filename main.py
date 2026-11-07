@@ -538,15 +538,25 @@ async def account_balance(demo: bool = True):
             usdt_total = float(bal.get('total', {}).get('USDT', 0.0))
             return {"status": "success", "totalUsdtBalance": usdt_free, "equityUsdt": usdt_total}
         except Exception as e:
-            raise HTTPException(502, f"تعذر جلب رصيد Binance: {str(e)}")
+            raise HTTPException(502, f"تعذر جلب رصيد Binance المباشر: {str(e)}")
     s = state()
     return {"status": "success", "totalUsdtBalance": s["cashUsdt"], "equityUsdt": s["equityUsdt"]}
 
 @app.get("/api/diagnostics")
-def diagnostics():
+async def diagnostics():
     s = state()
     history = s["history"]
     wins = sum(x["net_pnl"] > 0 for x in history)
+    live_balance_usdt = 0.0
+    fetch_error = None
+
+    if exchange:
+        try:
+            bal = await exchange.fetch_balance()
+            live_balance_usdt = float(bal.get('free', {}).get('USDT', 0.0))
+        except Exception as e:
+            fetch_error = str(e)
+
     return {
         "status": "healthy",
         "engine": "Micro Momentum V3 (CCXT Integration)",
@@ -554,7 +564,9 @@ def diagnostics():
         "activePositionsCount": len(s["positions"]),
         "recentClosedTrades": len(history),
         "recentWinRatePct": round(wins / len(history) * 100, 2) if history else None,
-        "hasApiKeysConfigured": bool(BINANCE_API_KEY and BINANCE_SECRET_KEY)
+        "hasApiKeysConfigured": bool(BINANCE_API_KEY and BINANCE_SECRET_KEY),
+        "liveBalanceUsdt": live_balance_usdt,
+        "binanceFetchError": fetch_error
     }
 
 @app.get("/")
