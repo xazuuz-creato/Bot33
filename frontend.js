@@ -1,732 +1,664 @@
+
 'use strict';
 
-// Decisions and accounting are handled by the Python server.
-let availableSymbols = [];
-let activePairs = [];
-let scope = 'top12';
-let isDemoMode = true;
-let tradeBudget = 100;
-let maxTradeDurationSec = 180;
-let activeTrades = [];
-let completedTrades = [];
-let ws = null;
-let wsGeneration = 0;
-let book = {};
-let bookSendAt = {};
-let lastEntryCheck = {};
-let entryBusy = new Set();
-let exitBusy = new Set();
-let tradeBuffer = [];
-let wsHealthy = false;
+const el = id => document.getElementById(id);
+const fmt = n => Number(n || 0).toFixed(4);
+
+let key = '';
 let config = null;
-let refreshBusy = false;
-let lastStateTime = 0;
+let symbols = [];
+let selected = [];
+let positions = [];
+let history = [];
 
-const $ = id => document.getElementById(id);
-const money = n => Number(n || 0).toFixed(3);
-const pct = n => Number(n || 0).toFixed(3);
+let socket = null;
+let generation = 0;
+let connected = false;
+let scope = 'top12';
 
-function logMessage(message, type = 'info') {
-  const row = document.createElement('div');
-  row.className = type === 'danger'
-    ? 'text-rose-400'
-    : type === 'success'
-    ? 'text-emerald-400'
-    : 'text-amber-400';
+let books = {};
+let sentAt = {};
+let trades = [];
 
-  row.textContent =
-    `[${new Date().toLocaleTimeString('ar-SA')}] ${message}`;
+let entryPending = new Set();
+let exitPending = new Set();
+let lastEntry = {};
 
-  $('consoleLog').prepend(row);
+let refreshing = false;
+let runningTest = false;
+let runningScan = false;
 
-  while ($('consoleLog').children.length > 100) {
-    $('consoleLog').lastElementChild.remove();
-  }
+function log(message, bad = false) {
+    const div = document.createElement('div');
+
+    div.className = bad
+        ? 'text-rose-400'
+        : 'text-emerald-300';
+
+    div.textContent =
+        `[${new Date().toLocaleTimeString('ar-SA')}] ${message}`;
+
+    el('consoleLog').prepend(div);
+
+    while (el('consoleLog').children.length > 80) {
+        el('consoleLog').lastElementChild.remove();
+    }
 }
 
 function clearConsole() {
-  $('consoleLog').textContent = '';
+    el('consoleLog').textContent = '';
 }
 
 async function api(path, data, method = 'POST') {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
+    const controller = new AbortController();
 
-  try {
-    const res = await fetch(path, {
-      method,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      ...(data === undefined
-        ? {}
-        : { body: JSON.stringify(data) }),
-      signal: ctrl.signal
-    });
+    const timeout = setTimeout(
+        () => controller.abort(),
+        6500
+    );
 
-    const json = await res.json();
+    try {
+        const response = await fetch(path, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Access-Key': key
+            },
+            ...(data === undefined
+                ? {}
+                : { body: JSON.stringify(data) }),
+            signal: controller.signal
+        });
 
-    if (!res.ok) {
-      throw new Error(
-        typeof json.detail === 'string'
-          ? json.detail
-          : `HTTP ${res.status}`
-      );
+        const body = await response.json();
+
+        if (!response.ok) {
+            throw Error(
+                typeof body.detail === 'string'
+                    ? body.detail
+                    : `HTTP ${response.status}`
+            );
+        }
+
+        return body;
+
+    } finally {
+        clearTimeout(timeout);
     }
-
-    return json;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-function setMode(demo) {
-  if (!demo) {
-    logMessage(
-      'التداول الحقيقي غير مدعوم في هذه النسخة.',
-      'danger'
-    );
-
-    alert(
-      'هذا الإصدار يدعم Demo فقط ولا يرسل أوامر حقيقية.'
-    );
-    return;
-  }
-
-  isDemoMode = true;
-  $('modeBadge').textContent = 'تجريبي فقط (Demo)';
-  $('liveBtn').disabled = true;
-
-  $('liveBtn').className =
-    'flex-1 py-1.5 bg-darkBg text-slate-500 ' +
-    'border border-slate-800 font-bold rounded-xl ' +
-    'text-xs opacity-50 cursor-not-allowed';
-
-  $('demoBtn').className =
-    'flex-1 py-1.5 bg-emerald-500 text-slate-950 ' +
-    'font-bold rounded-xl text-xs';
-}
-
-function updateTimeoutValue(val) {
-  maxTradeDurationSec = Number(val);
-
-  $('timeoutDisplay').textContent =
-    `${maxTradeDurationSec} ثانية ` +
-    `(${Math.floor(maxTradeDurationSec / 60)} د)`;
 }
 
 function setScope(next) {
-  scope = next;
+    scope = next;
 
-  activePairs = next === 'top12'
-    ? availableSymbols.slice(0, 12)
-    : availableSymbols.slice(0, 30);
+    selected = next === 'top12'
+        ? symbols.slice(0, 12)
+        : symbols.slice(0, 30);
 
-  const activeClass =
-    'px-2.5 py-2 bg-emerald-500/20 text-emerald-400 ' +
-    'border border-emerald-500/40 rounded-xl text-xs font-bold';
+    el('scopeTopBtn').className =
+        'btn ' + (next === 'top12' ? 'selected' : '');
 
-  const inactiveClass =
-    'px-2.5 py-2 bg-darkBg text-slate-400 ' +
-    'border border-slate-800 rounded-xl text-xs font-bold';
+    el('scopeAllBtn').className =
+        'btn ' + (next === 'all' ? 'selected' : '');
 
-  $('scopeTopBtn').className =
-    next === 'top12' ? activeClass : inactiveClass;
-
-  $('scopeAllBtn').className =
-    next === 'all' ? activeClass : inactiveClass;
-
-  const monitored = [
-    ...new Set([
-      ...activePairs,
-      ...activeTrades.map(x => x.symbol)
-    ])
-  ];
-
-  reconnectSockets(monitored);
-
-  logMessage(
-    `نطاق المراقبة: ${activePairs.length} زوج Spot متحقق منه.`
-  );
+    reconnect();
 }
 
-function reconnectSockets(symbols) {
-  const generation = ++wsGeneration;
-  wsHealthy = false;
+function reconnect() {
+    const gen = ++generation;
+    connected = false;
 
-  if (ws) {
-    try {
-      ws.onclose = null;
-      ws.close();
-    } catch (e) {}
-  }
-
-  ws = null;
-
-  if (!symbols.length) {
-    logMessage(
-      'لا توجد أزواج Binance متحققة.',
-      'danger'
-    );
-    return;
-  }
-
-  const streams = symbols.flatMap(s => [
-    `${s.toLowerCase()}@depth5@100ms`,
-    `${s.toLowerCase()}@aggTrade`
-  ]);
-
-  const url =
-    'wss://stream.binance.com:9443/stream?streams=' +
-    streams.join('/');
-
-  let socket;
-
-  try {
-    socket = new WebSocket(url);
-  } catch (err) {
-    logMessage(
-      'فشل فتح WebSocket: ' + err.message,
-      'danger'
-    );
-    return;
-  }
-
-  ws = socket;
-
-  socket.onopen = () => {
-    if (generation !== wsGeneration) return;
-
-    wsHealthy = true;
-
-    logMessage(
-      'متصل ببث Binance العام.',
-      'success'
-    );
-  };
-
-  socket.onmessage = e => {
-    if (generation !== wsGeneration) return;
-
-    let packet;
-
-    try {
-      packet = JSON.parse(e.data);
-    } catch (_) {
-      return;
+    if (socket) {
+        socket.onclose = null;
+        socket.close();
+        socket = null;
     }
 
-    const d = packet.data;
-    if (!d) return;
+    const watching = [
+        ...new Set([
+            ...selected,
+            ...positions.map(p => p.symbol)
+        ])
+    ];
 
-    const symbol = (
-      d.s ||
-      packet.stream?.split('@')[0] ||
-      ''
-    ).toUpperCase();
+    if (!watching.length) return;
 
-    if (d.bids && d.asks) {
-      if (!d.bids.length || !d.asks.length) return;
+    const streams = watching.flatMap(s => [
+        `${s.toLowerCase()}@depth5@100ms`,
+        `${s.toLowerCase()}@aggTrade`
+    ]);
 
-      const bid = Number(d.bids[0][0]);
-      const ask = Number(d.asks[0][0]);
-
-      if (!(bid > 0 && ask > bid)) return;
-
-      book[symbol] = {
-        bid,
-        ask,
-        time: Date.now()
-      };
-
-      const now = Date.now();
-
-      if (now - (bookSendAt[symbol] || 0) > 300) {
-        bookSendAt[symbol] = now;
-
-        api('/api/market-data/book', {
-          symbol,
-          bids: d.bids,
-          asks: d.asks,
-          timestamp: now
-        }).catch(err =>
-          logSparingly(
-            symbol + ' book',
-            err.message
-          )
-        );
-      }
-    } else if (
-      d.e === 'aggTrade' &&
-      Number(d.p) > 0 &&
-      Number(d.q) > 0
-    ) {
-      tradeBuffer.push({
-        symbol,
-        price: Number(d.p),
-        quantity: Number(d.q),
-        isBuyerMaker: Boolean(d.m),
-        timestamp: d.T
-      });
-
-      if (tradeBuffer.length > 2000) {
-        tradeBuffer.splice(
-          0,
-          tradeBuffer.length - 2000
-        );
-      }
-    }
-  };
-
-  socket.onerror = () => {
-    wsHealthy = false;
-  };
-
-  socket.onclose = () => {
-    if (generation !== wsGeneration) return;
-
-    wsHealthy = false;
-
-    logSparingly(
-      'websocket',
-      'انقطع بث Binance. إعادة الاتصال خلال 3 ثوانٍ.'
+    socket = new WebSocket(
+        'wss://stream.binance.com:9443/stream?streams='
+        + streams.join('/')
     );
 
-    setTimeout(() => {
-      if (generation === wsGeneration) {
-        reconnectSockets([
-          ...new Set([
-            ...activePairs,
-            ...activeTrades.map(t => t.symbol)
-          ])
-        ]);
-      }
-    }, 3000);
-  };
-}
+    socket.onopen = () => {
+        if (gen === generation) {
+            connected = true;
+            el('wsStatus').textContent = 'متصل';
+            log('تم الاتصال ببث Binance');
+        }
+    };
 
-let lastLogged = {};
+    socket.onmessage = event => {
+        if (gen !== generation) return;
 
-function logSparingly(key, msg) {
-  if (Date.now() - (lastLogged[key] || 0) > 12000) {
-    lastLogged[key] = Date.now();
-    logMessage(msg, 'danger');
-  }
+        let p;
+
+        try {
+            p = JSON.parse(event.data);
+        } catch {
+            return;
+        }
+
+        const d = p.data;
+        if (!d) return;
+
+        const symbol = String(
+            d.s || p.stream?.split('@')[0] || ''
+        ).toUpperCase();
+
+        if (
+            d.bids &&
+            d.asks &&
+            d.bids.length &&
+            d.asks.length
+        ) {
+            const bid = Number(d.bids[0][0]);
+            const ask = Number(d.asks[0][0]);
+
+            if (!(bid > 0 && ask > bid)) return;
+
+            books[symbol] = {
+                bid,
+                ask,
+                at: Date.now()
+            };
+
+            if (
+                Date.now() - (sentAt[symbol] || 0) >= 350
+            ) {
+                sentAt[symbol] = Date.now();
+
+                api('/api/market-data/book', {
+                    symbol,
+                    bids: d.bids,
+                    asks: d.asks
+                }).catch(e => {
+                    log(
+                        'دفتر الطلبات: ' + e.message,
+                        true
+                    );
+                });
+            }
+
+        } else if (d.e === 'aggTrade') {
+            const price = Number(d.p);
+            const quantity = Number(d.q);
+
+            if (price > 0 && quantity > 0) {
+                trades.push({
+                    symbol,
+                    price,
+                    quantity,
+                    isBuyerMaker: Boolean(d.m)
+                });
+            }
+
+            if (trades.length > 1000) {
+                trades.splice(
+                    0,
+                    trades.length - 1000
+                );
+            }
+        }
+    };
+
+    socket.onclose = () => {
+        if (gen !== generation) return;
+
+        connected = false;
+        el('wsStatus').textContent = 'منقطع';
+
+        log(
+            'انقطع WebSocket؛ إعادة المحاولة بعد 3 ثوانٍ',
+            true
+        );
+
+        setTimeout(() => {
+            if (gen === generation) reconnect();
+        }, 3000);
+    };
+
+    socket.onerror = () => {
+        connected = false;
+        el('wsStatus').textContent = 'خطأ اتصال';
+    };
 }
 
 async function flushTrades() {
-  if (!tradeBuffer.length) return;
+    if (!key || !trades.length) return;
 
-  const batch = tradeBuffer.splice(0, 200);
+    const batch = trades.splice(0, 200);
 
-  try {
-    await api('/api/market-data/trades', {
-      trades: batch
-    });
-  } catch (e) {
-    logSparingly(
-      'trades',
-      'فشل إرسال الصفقات المنفذة: ' + e.message
-    );
-  }
+    try {
+        await api('/api/market-data/trades', {
+            trades: batch
+        });
+    } catch (e) {
+        log(
+            'تعذر إرسال الصفقات المنفذة: ' + e.message,
+            true
+        );
+    }
 }
 
-async function scanEntries() {
-  if (
-    !wsHealthy ||
-    !config ||
-    activeTrades.length >= config.maxPositions
-  ) {
-    return;
-  }
+async function refresh() {
+    if (!key || refreshing) return;
 
-  for (const symbol of activePairs) {
-    if (
-      activeTrades.some(t => t.symbol === symbol) ||
-      entryBusy.has(symbol)
-    ) {
-      continue;
-    }
+    refreshing = true;
 
-    if (
-      Date.now() - (lastEntryCheck[symbol] || 0) <
-      1400
-    ) {
-      continue;
-    }
-
-    if (
-      !book[symbol] ||
-      Date.now() - book[symbol].time > 2500
-    ) {
-      continue;
-    }
-
-    lastEntryCheck[symbol] = Date.now();
-    entryBusy.add(symbol);
-
-    void (async () => {
-      try {
-        const signal = await api(
-          '/api/evaluate-entry',
-          { symbol }
+    try {
+        const data = await api(
+            '/api/state',
+            undefined,
+            'GET'
         );
 
-        if (!signal.enter || !signal.signalToken) {
-          return;
-        }
+        const before = positions
+            .map(p => p.symbol)
+            .join(',');
 
-        const budget = Number(
-          $('budgetInput').value
-        );
+        positions = data.positions;
+        history = data.history;
+
+        el('balanceDisplay').textContent =
+            '$' + Number(data.cashUsdt).toFixed(2);
+
+        render();
 
         if (
-          !(budget >= 10 && budget <= 100000)
+            before !== positions
+                .map(p => p.symbol)
+                .join(',')
         ) {
-          logMessage(
-            'الميزانية يجب أن تكون بين 10 و100000',
-            'danger'
-          );
-          return;
+            reconnect();
         }
 
-        const order = await api(
-          '/api/execute-order',
-          {
-            symbol,
-            action: 'BUY',
-            amountUsdt: budget,
-            useDemo: true,
-            signalToken: signal.signalToken,
-            maxHoldSeconds: maxTradeDurationSec
-          }
+    } catch (e) {
+        log(
+            'فشل مزامنة السيرفر: ' + e.message,
+            true
         );
-
-        if (order.status === 'success') {
-          logMessage(
-            `فتح تجريبي مؤكد ${symbol} ` +
-            `بسعر ${money(order.fillPrice)} ` +
-            `والرسوم ${money(order.feeUsdt)} USDT`,
-            'success'
-          );
-
-          await refreshState();
-        }
-      } catch (e) {
-        logSparingly(
-          symbol + ' entry',
-          `${symbol}: ${e.message}`
-        );
-      } finally {
-        entryBusy.delete(symbol);
-      }
-    })();
-
-    if (entryBusy.size >= 3) break;
-  }
+    } finally {
+        refreshing = false;
+    }
 }
 
-async function trackActiveTrades() {
-  for (const trade of [...activeTrades]) {
-    if (exitBusy.has(trade.symbol)) continue;
+async function scan() {
+    if (
+        !connected ||
+        !key ||
+        runningScan ||
+        !config
+    ) {
+        return;
+    }
 
-    exitBusy.add(trade.symbol);
+    runningScan = true;
 
-    void (async () => {
-      try {
-        const decision = await api(
-          '/api/position/evaluate-exit',
-          { symbol: trade.symbol }
-        );
-
-        if (decision.reason === 'STALE_DATA') {
-          logSparingly(
-            trade.symbol + ' stale',
-            `${trade.symbol}: بيانات السعر قديمة`
-          );
-          return;
-        }
-
-        if (decision.exit) {
-          const sold = await api(
-            '/api/execute-order',
-            {
-              symbol: trade.symbol,
-              action: 'SELL',
-              useDemo: true,
-              reason: decision.reason
+    try {
+        for (const symbol of selected) {
+            if (
+                positions.length + entryPending.size
+                >= config.maxPositions
+            ) {
+                break;
             }
-          );
 
-          if (sold.status === 'success') {
-            const net =
-              sold.closedTrade.net_pnl;
+            if (
+                positions.some(p => p.symbol === symbol)
+                || entryPending.has(symbol)
+            ) {
+                continue;
+            }
 
-            logMessage(
-              `إغلاق تجريبي مؤكد ${trade.symbol} ` +
-              `بسبب ${decision.reason} | ` +
-              `الصافي ${money(net)} USDT`,
-              net >= 0 ? 'success' : 'danger'
+            if (
+                !books[symbol] ||
+                Date.now() - books[symbol].at > 2000
+            ) {
+                continue;
+            }
+
+            if (
+                Date.now() - (lastEntry[symbol] || 0)
+                < 1700
+            ) {
+                continue;
+            }
+
+            lastEntry[symbol] = Date.now();
+            entryPending.add(symbol);
+
+            try {
+                const signal = await api(
+                    '/api/evaluate-entry',
+                    { symbol }
+                );
+
+                if (!signal.enter) continue;
+
+                const budget = Number(
+                    el('budgetInput').value
+                );
+
+                const hold = Number(
+                    el('timeoutRange').value
+                );
+
+                if (
+                    !Number.isFinite(budget) ||
+                    budget < 10 ||
+                    budget > 100000
+                ) {
+                    throw Error('ميزانية غير صالحة');
+                }
+
+                const order = await api(
+                    '/api/execute-order',
+                    {
+                        symbol,
+                        action: 'BUY',
+                        amountUsdt: budget,
+                        signalToken: signal.signalToken,
+                        maxHoldSeconds: hold,
+                        useDemo: true
+                    }
+                );
+
+                log(
+                    `شراء تجريبي مؤكد: ${symbol} | ` +
+                    `عمولة ${fmt(order.feeUsdt)}`
+                );
+
+                await refresh();
+
+            } catch (e) {
+                log(
+                    `رفض/فشل شراء ${symbol}: ${e.message}`,
+                    true
+                );
+
+            } finally {
+                entryPending.delete(symbol);
+            }
+        }
+    } finally {
+        runningScan = false;
+    }
+}
+
+async function checkExits() {
+    for (const p of [...positions]) {
+        if (exitPending.has(p.symbol)) continue;
+
+        exitPending.add(p.symbol);
+
+        try {
+            const decision = await api(
+                '/api/position/evaluate-exit',
+                { symbol: p.symbol }
             );
 
-            await refreshState();
-          }
+            if (decision.reason === 'STALE_DATA') {
+                log(
+                    `تحذير: بيانات ${p.symbol} قديمة، ` +
+                    'المركز دون متابعة فعالة',
+                    true
+                );
+                continue;
+            }
+
+            if (!decision.exit) continue;
+
+            const order = await api(
+                '/api/execute-order',
+                {
+                    symbol: p.symbol,
+                    action: 'SELL',
+                    reason: decision.reason,
+                    useDemo: true
+                }
+            );
+
+            log(
+                `بيع تجريبي مؤكد ${p.symbol} | ` +
+                `الصافي ${fmt(order.closedTrade.net)} USDT`
+            );
+
+            await refresh();
+
+        } catch (e) {
+            log(
+                `فشل متابعة ${p.symbol}: ${e.message}`,
+                true
+            );
+
+        } finally {
+            exitPending.delete(p.symbol);
         }
-      } catch (e) {
-        logSparingly(
-          trade.symbol + ' exit',
-          `${trade.symbol}: ${e.message}`
+    }
+}
+
+function render() {
+    el('activeCountBadge').textContent =
+        `${positions.length} مراكز`;
+
+    const active = el('activeTradesTbody');
+    active.textContent = '';
+
+    for (const p of positions) {
+        const bid = books[p.symbol]?.bid || p.entry;
+
+        const estimate =
+            p.qty *
+            bid *
+            (1 - (config?.slippageRatePerSide || 0)) *
+            (1 - (config?.feeRatePerSide || 0))
+            - p.cost
+            - p.buy_fee;
+
+        const tr = document.createElement('tr');
+
+        const values = [
+            p.symbol,
+            fmt(p.entry),
+            fmt(bid),
+            fmt(p.cost + p.buy_fee),
+            fmt(estimate) + ' USDT',
+            Math.floor(
+                Date.now() / 1000 - p.opened
+            ) + 'ث',
+            fmt(p.stop) + ' / ' + fmt(p.target)
+        ];
+
+        values.forEach(v => {
+            const td = document.createElement('td');
+            td.textContent = v;
+            tr.appendChild(td);
+        });
+
+        active.appendChild(tr);
+    }
+
+    if (!positions.length) {
+        active.innerHTML =
+            '<tr><td colspan="7">' +
+            'لا توجد صفقات مفتوحة</td></tr>';
+    }
+
+    const finished = el('historyTradesTbody');
+    finished.textContent = '';
+
+    const net = history.reduce(
+        (a, t) => a + t.net,
+        0
+    );
+
+    const wins = history.filter(
+        t => t.net > 0
+    ).length;
+
+    const rate = history.length
+        ? (wins / history.length * 100).toFixed(1)
+        : 0;
+
+    el('historyStatsBadge').textContent =
+        `صافي آخر ${history.length} صفقة: ` +
+        `${fmt(net)} USDT | نجاح ${rate}%`;
+
+    for (const t of history) {
+        const tr = document.createElement('tr');
+
+        const values = [
+            t.symbol,
+            fmt(t.entry),
+            fmt(t.exit),
+            fmt(t.buy_fee + t.sell_fee),
+            fmt(t.net),
+            Math.round(t.closed - t.opened) + 'ث',
+            t.reason
+        ];
+
+        values.forEach(v => {
+            const td = document.createElement('td');
+            td.textContent = v;
+            tr.appendChild(td);
+        });
+
+        finished.appendChild(tr);
+    }
+
+    if (!history.length) {
+        finished.innerHTML =
+            '<tr><td colspan="7">' +
+            'لا توجد صفقات مكتملة</td></tr>';
+    }
+}
+
+async function runSelfTest() {
+    if (runningTest) return;
+
+    key = el('accessKey').value.trim();
+
+    if (!key) {
+        alert('أدخل مفتاح APP_ACCESS_KEY أولاً');
+        return;
+    }
+
+    runningTest = true;
+    el('testButton').disabled = true;
+    el('testResults').textContent = 'جارٍ الفحص...';
+
+    try {
+        const report = await api(
+            '/api/self-test',
+            {}
         );
-      } finally {
-        exitBusy.delete(trade.symbol);
-      }
-    })();
-  }
-}
 
-async function refreshState() {
-  if (refreshBusy) return;
+        const box = el('testResults');
+        box.textContent = '';
 
-  refreshBusy = true;
+        for (const r of report.results) {
+            const line = document.createElement('div');
 
-  try {
-    const s = await api(
-      '/api/state',
-      undefined,
-      'GET'
-    );
+            line.className =
+                r.status === 'PASS'
+                    ? 'text-emerald-400'
+                    : r.status === 'FAIL'
+                    ? 'text-rose-400'
+                    : 'text-amber-400';
 
-    activeTrades = s.positions;
-    completedTrades = s.history;
+            line.textContent =
+                `${r.status} | ${r.name} | ${r.detail}`;
 
-    $('balanceDisplay').textContent =
-      '$' + Number(s.cashUsdt).toFixed(2);
+            box.appendChild(line);
+        }
 
-    renderActiveTrades();
-    renderHistoryTrades();
-    runAIAnalysis();
-
-    lastStateTime = Date.now();
-  } catch (e) {
-    logSparingly(
-      'state',
-      'تعذر مزامنة حالة السيرفر: ' + e.message
-    );
-  } finally {
-    refreshBusy = false;
-  }
-}
-
-async function fetchBalance() {
-  await refreshState();
-}
-
-function renderActiveTrades() {
-  $('activeCountBadge').textContent =
-    activeTrades.length + ' صفقات';
-
-  const tbody = $('activeTradesTbody');
-  tbody.textContent = '';
-
-  if (!activeTrades.length) {
-    tbody.innerHTML =
-      '<tr><td colspan="7" ' +
-      'class="py-6 text-center text-slate-500">' +
-      'لا توجد مراكز تجريبية مفتوحة.' +
-      '</td></tr>';
-    return;
-  }
-
-  for (const t of activeTrades) {
-    const row = document.createElement('tr');
-    row.className = 'border-b border-slate-800';
-
-    const p = book[t.symbol];
-    const bid = p?.bid || t.entry_price;
-
-    const est =
-      (bid / t.entry_price - 1) * 100;
-
-    const cols = [
-      t.symbol,
-      '$' + money(t.entry_price),
-      '$' + money(bid),
-      '$' + money(t.entry_cost + t.entry_fee),
-      pct(est) + '% إجمالي',
-      Math.floor(
-        Date.now() / 1000 - t.entry_time
-      ) + 'ث / ' + t.max_duration + 'ث',
-      'وقف ' + money(t.stop_price) +
-      ' | هدف ' + money(t.target_price)
-    ];
-
-    cols.forEach((v, i) => {
-      const td = document.createElement('td');
-      td.className = 'py-3 px-3 font-mono';
-      td.textContent = v;
-
-      if (i === 4) {
-        td.classList.add(
-          est >= 0
-            ? 'text-emerald-400'
-            : 'text-rose-400'
+        log(
+            `الفحص: ${report.passed} ناجح، ` +
+            `${report.failed} فاشل، ` +
+            `${report.unavailable} غير متاح`
         );
-      }
 
-      row.appendChild(td);
-    });
+    } catch (e) {
+        el('testResults').textContent =
+            'تعذر إجراء الفحص: ' + e.message;
 
-    tbody.appendChild(row);
-  }
+    } finally {
+        runningTest = false;
+        el('testButton').disabled = false;
+    }
 }
 
-function renderHistoryTrades() {
-  const tbody = $('historyTradesTbody');
-  tbody.textContent = '';
+async function startApp() {
+    key = el('accessKey').value.trim();
 
-  const wins = completedTrades.filter(
-    t => t.net_pnl > 0
-  ).length;
+    if (!key) {
+        alert('أدخل مفتاح APP_ACCESS_KEY');
+        return;
+    }
 
-  const sum = completedTrades.reduce(
-    (a, t) => a + t.net_pnl,
-    0
-  );
-
-  const winRate = completedTrades.length
-    ? (100 * wins / completedTrades.length).toFixed(1)
-    : '0.0';
-
-  $('historyStatsBadge').textContent =
-    `الصافي: $${money(sum)} | ` +
-    `نسبة النجاح: ${winRate}% ` +
-    `(${wins}/${completedTrades.length})`;
-
-  if (!completedTrades.length) {
-    tbody.innerHTML =
-      '<tr><td colspan="7" ' +
-      'class="py-6 text-center text-slate-500">' +
-      'لا توجد صفقات مكتملة بعد.' +
-      '</td></tr>';
-    return;
-  }
-
-  for (const t of completedTrades) {
-    const row = document.createElement('tr');
-    row.className = 'border-b border-slate-800';
-
-    const p =
-      (t.exit_price / t.entry_price - 1) * 100;
-
-    const cols = [
-      t.symbol,
-      '$' + money(t.entry_price),
-      '$' + money(t.exit_price),
-      pct(p) + '%',
-      '$' + money(t.net_pnl),
-      Math.round(
-        t.closed_at - t.opened_at
-      ) + 'ث',
-      t.reason
-    ];
-
-    cols.forEach((v, i) => {
-      const td = document.createElement('td');
-      td.className = 'py-3 px-3 font-mono';
-      td.textContent = v;
-
-      if (i === 4) {
-        td.classList.add(
-          t.net_pnl > 0
-            ? 'text-emerald-400'
-            : 'text-rose-400'
+    try {
+        config = await api(
+            '/api/config',
+            undefined,
+            'GET'
         );
-      }
 
-      row.appendChild(td);
-    });
+        const result = await api(
+            '/api/symbols',
+            undefined,
+            'GET'
+        );
 
-    tbody.appendChild(row);
-  }
+        if (!result.verified) {
+            throw Error(
+                'لم يتم التحقق من أزواج Spot'
+            );
+        }
+
+        symbols = config.symbols.filter(
+            s => result.symbols.includes(s)
+        );
+
+        await refresh();
+        setScope(scope);
+
+        log(
+            `بدأت المراقبة التجريبية لعدد ` +
+            `${selected.length} زوج`
+        );
+
+    } catch (e) {
+        log(
+            'تعذر بدء المراقبة: ' + e.message,
+            true
+        );
+    }
 }
 
-function runAIAnalysis() {
-  const losses = completedTrades.filter(
-    t => t.net_pnl < 0
-  ).length;
-
-  const timeout = completedTrades.filter(
-    t => t.reason === 'TIMEOUT'
-  ).length;
-
-  $('aiAlgoDesc').textContent =
-    'الشراء يستلزم ضغط شراء منفذ + عدم توازن ' +
-    'سيولة مستقر + زخم إيجابي + فلتر الرسوم ' +
-    'والسبريد والانزلاق. الوضع التجريبي فقط.';
-
-  $('aiTriggerDesc').textContent =
-    'القرار النهائي للسيرفر. ظهور سيولة كبيرة ' +
-    'وحده لا يكفي لدخول صفقة.';
-
-  $('aiErrorsAudit').textContent =
-    `التقرير الإحصائي: ${completedTrades.length} ` +
-    `صفقة مكتملة؛ ${losses} خاسرة؛ ` +
-    `${timeout} خروج زمني. ` +
-    'لا يوجد نموذج ذكاء اصطناعي تنبؤي.';
+function updateTimeoutValue(value) {
+    el('timeoutDisplay').textContent =
+        value + ' ثانية';
 }
 
-function clearHistory() {
-  logMessage(
-    'السجل محفوظ في قاعدة البيانات ' +
-    'ولا يُحذف من الواجهة.',
-    'info'
-  );
-}
+window.addEventListener('load', () => {
+    el('liveBtn').disabled = true;
 
-window.addEventListener('load', async () => {
-  setMode(true);
-
-  try {
-    config = await api(
-      '/api/config',
-      undefined,
-      'GET'
-    );
-
-    const pairs = await api(
-      '/api/symbols',
-      undefined,
-      'GET'
-    );
-
-    availableSymbols = config.symbols.filter(
-      s => pairs.symbols.includes(s)
-    );
-
-    setScope('top12');
-
-    logMessage(
-      `تم التحقق من ${availableSymbols.length} ` +
-      'زوج Spot عبر Binance.',
-      'success'
-    );
-  } catch (e) {
-    logMessage(
-      'لم يبدأ المحرك لأن التحقق من Binance فشل: ' +
-      e.message,
-      'danger'
-    );
-  }
-
-  await refreshState();
-
-  if (availableSymbols.length) {
-    setScope(scope);
-  }
-
-  setInterval(flushTrades, 350);
-  setInterval(scanEntries, 1400);
-  setInterval(trackActiveTrades, 900);
-  setInterval(refreshState, 4000);
-  setInterval(renderActiveTrades, 1000);
+    setInterval(flushTrades, 400);
+    setInterval(scan, 1700);
+    setInterval(checkExits, 1000);
+    setInterval(refresh, 5000);
+    setInterval(render, 1000);
 });
