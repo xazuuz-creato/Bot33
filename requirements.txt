@@ -1,9 +1,7 @@
-fastapi
-uvicorn[standard]
-gunicorn
-ccxt
-websockets
-aiohttp
-httpx
-jinja2
-pydantic
+streamlit
+moviepy
+arabic-reshaper
+python-bidi
+requests
+edge-tts
+asyncio
