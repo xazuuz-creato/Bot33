@@ -1,11 +1,13 @@
-# engines.py - النسخة الاحترافية المصححة لحماية الـ RAM على Render
+# engines.py - النسخة الاحترافية المصححة لحماية الـ RAM ومتوافقة مع الإصدار الجديد لـ MoviePy
 import os
 import requests
 import asyncio
 import gc
 import arabic_reshaper
 from bidi.algorithm import get_display
-from moviepy.editor import VideoFileClip, TextClip, AudioFileClip, CompositeVideoClip, concatenate_videoclips
+
+# تعديل الاستدعاء هنا ليتوافق مع أحدث إصدارات MoviePy ويتجنب خطأ الـ ModuleNotFoundError
+from moviepy import VideoFileClip, TextClip, AudioFileClip, CompositeVideoClip, concatenate_videoclips
 import edge_tts
 
 FONT_NAME = "Cairo-Bold.ttf"
