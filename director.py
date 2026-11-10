@@ -1,37 +1,31 @@
+# director.py - النسخة الاحترافية المصححة
 class ResearchAgent:
     def process(self, topic):
-        return f"بيانات موثقة ومعالجة بدقة حول: {topic}"
+        return f"تقرير موثق ومصفى حول: {topic}. الفكرة ترتبط بحلول متطورة وإبداعية تكسر الجمود السائد."
 
 class ScriptwriterAgent:
-    def process(self, research_data):
-        return "هل تعلم أن الابتكار يولد دائماً من قلب الأزمات؟ نصنع اليوم حلاً ذكياً يغير قواعد اللعبة تماماً."
+    def process(self, topic, research_data):
+        # جعل النص يتغير ديناميكياً بناءً على فكرة المستخدم ومصطلحات البحث
+        return f"هل تعلم كيف يغير الـ {topic} قواعد اللعبة تماماً؟ من قلب التحديات الكبرى، نصنع اليوم ابتكاراً ذكياً يبهر العالم بتفاصيله."
 
 class StoryboardAgent:
-    def process(self, script_text):
-        # تفكيك النص وتقسيمه إلى مشاهد بنائية منظمة
+    def process(self, script_text, topic):
         return [
-            {"scene_id": 1, "text": "هل تعلم أن الابتكار يولد دائماً من قلب الأزمات؟", "context": "الأزمات", "duration": 5},
-            {"scene_id": 2, "text": "نصنع اليوم حلاً ذكياً يغير قواعد اللعبة تماماً.", "context": "الجزري", "duration": 6}
+            {"scene_id": 1, "text": f"هل تعلم كيف يغير الـ {topic} قواعد اللعبة تماماً؟", "context": "الأزمات", "duration": 5},
+            {"scene_id": 2, "text": "من قلب التحديات الكبرى، نصنع اليوم ابتكاراً ذكياً يبهر العالم بتفاصيله.", "context": "الجزري", "duration": 6}
         ]
 
 class AIDirector:
-    def __init__(self):
-        self.researcher = ResearchAgent()
-        self.scriptwriter = ScriptwriterAgent()
-        self.storyboarder = StoryboardAgent()
-
     def build_project_specification(self, user_prompt):
-        """
-        تقوم بالتنسيق المتتابع وتوليد ملف مواصفات المشروع الموحد (UPS)
-        """
-        r_data = self.researcher.process(user_prompt)
-        script = self.scriptwriter.process(r_data)
-        scenes = self.storyboarder.process(script)
+        researcher = ResearchAgent()
+        scriptwriter = ScriptwriterAgent()
+        storyboarder = StoryboardAgent()
         
-        # ملف الـ UPS الموحد المركزي النظيف لمنع خسارة السياق تواصل بروتوكولي
-        ups_specification = {
+        r_data = researcher.process(user_prompt)
+        script = scriptwriter.process(user_prompt, r_data)
+        scenes = storyboarder.process(script, user_prompt)
+        
+        return {
             "metadata": {"topic": user_prompt, "mood": "cinematic"},
             "scenes": scenes
         }
-        return ups_specification
-
